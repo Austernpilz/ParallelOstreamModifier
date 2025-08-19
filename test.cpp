@@ -1,9 +1,13 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include "zlib.h"
 #include <fstream>
+#include <iostream>
+#include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__)
 #  include <fcntl.h>
@@ -34,7 +38,7 @@ int def(FILE *source, FILE *dest, int level)
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
     ret = deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15+16,
-                  8, Z_DEFAULT_STRATEGY);
+                         8, Z_DEFAULT_STRATEGY);
     if (ret != Z_OK)
         return ret;
 
@@ -42,7 +46,7 @@ int def(FILE *source, FILE *dest, int level)
     do {
         strm.avail_in = fread(in, 1, CHUNK, source);
         if (ferror(source)) {
-            deflateEnd(&strm);
+            (void)deflateEnd(&strm);
             return Z_ERRNO;
         }
         flush = feof(source) ? Z_FINISH : Z_NO_FLUSH;
@@ -57,7 +61,7 @@ int def(FILE *source, FILE *dest, int level)
             assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
             have = CHUNK - strm.avail_out;
             if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
-                deflateEnd(&strm);
+                (void)deflateEnd(&strm);
                 return Z_ERRNO;
             }
         } while (strm.avail_out == 0);
@@ -68,10 +72,7 @@ int def(FILE *source, FILE *dest, int level)
     assert(ret == Z_STREAM_END);        /* stream will be complete */
 
     /* clean up and return */
-    deflateEnd(&strm);
-    std::ofstream outfile(dest, std::ios::out | std::ios::binary);
-    outfile.write(compress_out, sizeof(compress_out) - strm.avail_out ); 
-    outfile.close();
+    (void)deflateEnd(&strm);
     return Z_OK;
 }
 
@@ -95,7 +96,7 @@ int inf(FILE *source, FILE *dest)
     strm.opaque = Z_NULL;
     strm.avail_in = 0;
     strm.next_in = Z_NULL;
-    ret = inflateInit(&strm);
+    ret = inflateInit2(&strm, 15+32);
     if (ret != Z_OK)
         return ret;
 
@@ -144,24 +145,38 @@ void zerr(int ret)
 {
     fputs("zpipe: ", stderr);
     switch (ret) {
-    case Z_ERRNO:
-        if (ferror(stdin))
-            fputs("error reading stdin\n", stderr);
-        if (ferror(stdout))
-            fputs("error writing stdout\n", stderr);
-        break;
-    case Z_STREAM_ERROR:
-        fputs("invalid compression level\n", stderr);
-        break;
-    case Z_DATA_ERROR:
-        fputs("invalid or incomplete deflate data\n", stderr);
-        break;
-    case Z_MEM_ERROR:
-        fputs("out of memory\n", stderr);
-        break;
-    case Z_VERSION_ERROR:
-        fputs("zlib version mismatch!\n", stderr);
+      case Z_ERRNO:
+          if (ferror(stdin))
+              fputs("error reading stdin\n", stderr);
+          if (ferror(stdout))
+              fputs("error writing stdout\n", stderr);
+          break;
+      case Z_STREAM_ERROR:
+          fputs("invalid compression level\n", stderr);
+          break;
+      case Z_DATA_ERROR:
+          fputs("invalid or incomplete deflate data\n", stderr);
+          break;
+      case Z_MEM_ERROR:
+          fputs("out of memory\n", stderr);
+          break;
+      case Z_VERSION_ERROR:
+          fputs("zlib version mismatch!\n", stderr);
+      }
+}
+
+bool check_same(const char *file1, const char *file2) {
+    std::ifstream f1(file1, std::ios::binary);
+    std::ifstream f2(file2, std::ios::binary);
+
+    if (!f1.is_open() || !f2.is_open()) {
+        return false; // Error opening files
     }
+
+    std::string content1((std::istreambuf_iterator<char>(f1)), std::istreambuf_iterator<char>());
+    std::string content2((std::istreambuf_iterator<char>(f2)), std::istreambuf_iterator<char>());
+
+    return content1 == content2;
 }
 
 /* compress or decompress from stdin to stdout */
@@ -175,23 +190,36 @@ int main(int argc, char **argv)
 
     /* do compression if no arguments */
     if (argc == 1) {
-        ret = def(stdin, stdout, Z_DEFAULT_COMPRESSION);
+        ret = def(stdin, stdout, 9);
         if (ret != Z_OK)
             zerr(ret);
         return ret;
     }
 
     /* do decompression if -d specified */
-    else if (argc == 2 && strcmp(argv[1], "-d") == 0) {
-        ret = inf(stdin, stdout);
+    else if (argc == 4 && strcmp(argv[1], "-d") == 0) {
+        auto f1 = fopen(argv[2], "r");
+        auto f2 = fopen(argv[3], "w");
+        ret = inf(f1, f2);
         if (ret != Z_OK)
             zerr(ret);
         return ret;
     }
 
-    /* otherwise, report usage */
-    else {
-        fputs("zpipe usage: zpipe [-d] < source > dest\n", stderr);
-        return 1;
+    /* otherwise */
+    else if (argc == 3)
+    {
+      auto f1 = fopen(argv[1], "r");
+      auto f2 = fopen(argv[2], "w");
+      ret = def(f1, f2, 9);
+      if (ret != Z_OK)
+        zerr(ret);
+      return ret;
     }
-}
+    else {
+      bool res = check_same(argv[1], argv[2]);
+      std::cout << "Files are " << (res ? "the same." : "different.") << std::endl;
+      return res ? 0 : 1;
+    }
+  }
+
