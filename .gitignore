@@ -10,3 +10,4 @@ compressed_output2.txt
 compressed_output.txt
 CMAKEFiles
 CMakeCache
+bin/*
