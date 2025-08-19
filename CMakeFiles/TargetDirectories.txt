@@ -1,0 +1,3 @@
+/home/mi/manuez42/Dokumente/testtest/CMakeFiles/main.dir
+/home/mi/manuez42/Dokumente/testtest/CMakeFiles/edit_cache.dir
+/home/mi/manuez42/Dokumente/testtest/CMakeFiles/rebuild_cache.dir
