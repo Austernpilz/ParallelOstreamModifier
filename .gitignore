@@ -1,0 +1,12 @@
+*.gz
+*.gzip
+*.zlib
+test2.txt
+test3.txt
+main
+*.o
+compressed_output
+compressed_output2.txt
+compressed_output.txt
+CMAKEFiles
+CMakeCache
