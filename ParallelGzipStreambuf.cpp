@@ -17,25 +17,41 @@
 class ParallelGzipStreambuf : public std::streambuf 
 {
   public:
-
-    ParallelGzipStreambuf(std::ostream& os, size_t bufferSize = (1024*1024))
-      : ostream_(os), buffer_(bufferSize), stopWorker_(false)
+    ParallelGzipStreambuf::ParallelGzipStreambuf(std::ostream& os, std::size_t buffer_size, int compression_level, int num_threads)
+    : ostream_(os), buffer_(buffer_size), compression_(compression_level), threads_(num_threads)
     {
       setp(buffer_.data(), buffer_.data() + buffer_.size());
-      worker_ = std::thread(&ParallelGzipStreambuf::workerThread, this);
     }
 
-    ~ParallelGzipStreambuf() override
+    void set_ostream(std::ostream& os)
     {
-      sync();
-      {
-          std::lock_guard<std::mutex> lock(queueMutex_);
-          stopWorker_ = true;
-      }
-      queueCondVar_.notify_all();
-      if (worker_.joinable()) {
-          worker_.join();
-      }
+      ostream_ = &os
+    }
+
+    void set_buffer(std::size_t buffer_size)
+    {
+      buffer_.resize(buffer_size)
+    }
+
+    void set_compression(int compression_level)
+    {
+      compression_ = compression_level
+    }
+
+    void set_threads(int num_threads)
+    {
+      threads_ = num_threads
+    }
+
+    void set_chunk_size(std::size_t chunk_size)
+    {
+      chunk_size_ = chunk_size
+    }
+
+    void readjust_buffer_from_threads()
+    {
+      std::size_t new_buffer_size = buffer_.size() * threads_
+      buffer_.resize(new_buffer_size)
     }
 
   protected:
@@ -45,12 +61,12 @@ class ParallelGzipStreambuf : public std::streambuf
           *pptr() = ch;
           pbump(1);
       }
-      return (flushBuffer() == -1 ) ? traits_type::eof() : ch;
+      return (flush() == -1 ) ? traits_type::eof() : ch;
     }
 
     int sync() override 
     {
-      flushBuffer();
+      flush();
       {
           std::unique_lock<std::mutex> lock(queueMutex_);
           flushRequested_ = true;
@@ -92,7 +108,7 @@ class ParallelGzipStreambuf : public std::streambuf
   private:
     std::ostream& ostream_;
     std::vector<char> buffer_;
-    std::size_t chunk_size_ = 1024 * 16;
+    std::size_t chunk_size_ = 1024 * 32; // max value that is recommendet in zlib
 
     std::thread worker_;
     std::queue<std::vector<char>> taskQueue_;
@@ -107,7 +123,7 @@ class ParallelGzipStreambuf : public std::streambuf
 
     std::mutex writeMutex_;
 
-    int flushBuffer()
+    int flush()
     {
       std::ptrdiff_t size = pptr() - pbase();
       if (size == 0) return 0;
@@ -170,51 +186,44 @@ class ParallelGzipStreambuf : public std::streambuf
       }
     }
       
-    std::vector<char> compressData(const std::vector<char>& input, const bool last)
+    std::vector<char> compress_data(const std::vector<char>& input, const bool last)
     {
-      std::vector<char> compressed_output; // output data
-      std::vector<char> output_buffer;
-      output_buffer.resize(chunk_size_);
-      // uLongf destLen = compressBound(input.size());
-      // compressed.resize(destLen);
-        
-      z_stream comp_stream;
-      // unsigned char comp_input[CHUNK];
-      comp_stream.zalloc = Z_NULL;
-      comp_stream.zfree = Z_NULL;
-      comp_stream.opaque = Z_NULL;
+      std::vector<char> compressed_output; // return value
+      std::vector<char> zbuffer_output(chunk_size_); // buffer for zstream
+
+      uLongf destLen = compressBound(input.size());
+      compressed.resize(destLen);
+
+      z_stream compression_stream;
+      compression_stream.zalloc = Z_NULL;
+      compression_stream.zfree = Z_NULL;
+      compression_stream.opaque = Z_NULL;
 
       // for parameters see https://neacsum.github.io/zlib/group__adv.html#gae501d2862c68d17b909d6f1c9264815c
-      int comp_obj = deflateInit2(
-        // strm= 
-        &comp_stream, 
-        // can be anything between 0..9
-        // 0 is no compression, 1 is best speed, 9 is best compression
-        // level = 
-        9, 
-        //fixed
-        //method = 
-        Z_DEFLATED, 
-        // +16 for gzipped | 15 can be anything between 8..15
-        // windowBits = 
-        15+16,  
-        // anything between 1..9, standart is 8
-        // 1 is min mem, slow, low compression rate
-        // 9 is max mem, optimal speed, high compression rate,
-        // memLevel = 
-        9,
-        // depending on the data, this could be optimized, look in documentation
-        // strategy = 
-        Z_DEFAULT_STRATEGY
+      int compression_status = deflateInit2(
+        &compression_stream, // strm= 
+        compression_, // level = 
+          // can be anything between 0..9
+          // 0 is no compression, 1 is best speed, 9 is best compression
+        Z_DEFLATED, //method = 
+        //fixed in this mode
+        15+16, // windowBits = 
+          // +16 for gzipped | can be anything between 8..15 (+16)
+        9, // memLevel = 
+          // anything between 1..9, standart is 8
+          // 1 is min mem, slow, low compression rate
+          // 9 is max mem, optimal speed, high compression rate,
+        Z_DEFAULT_STRATEGY // strategy = 
+          // depending on the data, this could be optimized, look in documentation
         );
         
+      assert(compression_status == Z_OK);
 
-      assert(comp_obj == Z_OK);
-      comp_stream.avail_in = input.size();
-      comp_stream.next_in = reinterpret_cast<unsigned char *>(const_cast<char *>(input.data()));
+      compression_stream.avail_in = input.size();
+      compression_stream.next_in = reinterpret_cast<unsigned char *>(const_cast<char *>(input.data()));
         
         // if (ferror(input)) {
-        //     deflateEnd(&comp_stream);
+        //     deflateEnd(&compression_stream);
         //     return Z_ERRNO;
         // }
         // int flush;
@@ -222,32 +231,20 @@ class ParallelGzipStreambuf : public std::streambuf
         // flush = feof(source) ? Z_FINISH : Z_NO_FLUSH;
       int mode = last ? Z_FINISH : Z_SYNC_FLUSH;
       do {
-        comp_stream.avail_out = output_buffer.size();
-        comp_stream.next_out = reinterpret_cast<unsigned char *>(const_cast<char *>(output_buffer.data()));
+        compression_stream.avail_out = zbuffer_output.size();
+        compression_stream.next_out = reinterpret_cast<unsigned char *>(const_cast<char *>(zbuffer_output.data()));
         //documentation for deflate https://neacsum.github.io/zlib/group__basic.html#gaedba3a94d6e827d61b660443ae5b9f09
-        // have = chunk_size_ - comp_stream.avail_out ;
-        
-        comp_obj = deflate(&comp_stream, mode);
-        assert(comp_obj != Z_STREAM_ERROR);
+        compression_status = deflate(&compression_stream, mode);
+        assert(compression_status != Z_STREAM_ERROR);
         compressed_output.insert(
           compressed_output.end(), 
-          output_buffer.begin(), 
-          output_buffer.begin() + (output_buffer.size() - comp_stream.avail_out));
-        } while (comp_stream.avail_out == 0);
-        // have = chunk_size_ - comp_stream.avail_out;
-        // if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
-        //     (void)deflateEnd(&comp_stream);
-        //     return Z_ERRNO;
-        // }
-      // assert(comp_stream.avail_in == 0);   
-      deflateEnd(&comp_stream);  
-      // assert(comp_obj == Z_STREAM_END);
+          zbuffer_output.begin(), 
+          zbuffer_output.begin() + (zbuffer_output.size() - compression_stream.avail_out));
+        } while (compression_stream.avail_out == 0);
 
-        // if (compress(reinterpret_cast<const Bytef*>(input.data())(compressed.data()), &destLen,
-        //             reinterpret_cast<const Bytef*>(input.data())(input.data()), input.size()) != Z_OK) {
-        //     throw std::runtime_error("Compression failed");
-        // }
-      
+      deflateEnd(&compression_stream);  
+      assert(compression_status == Z_STREAM_END);
+
       return compressed_output;
     }
 };
@@ -256,34 +253,16 @@ class ParallelGzipStreambuf : public std::streambuf
 class ParallelGzipOstream : public std::ostream 
 {
   public:
-    // Main constructor
-    explicit ParallelGzipOstream(std::ostream& os)
+    explicit ParallelGzipOstream(std::ostream& os, const int threads = 1)
     : std::ostream(nullptr), buffer_(os) 
     {
       rdbuf(&buffer_);
     }
 
-    // With custom buffer size
-    ParallelGzipOstream(std::ostream& os, std::size_t buffer_size)
-    : std::ostream(nullptr), buffer_(os, buffer_size) 
-    {
-      rdbuf(&buffer_);
-    }
-
-    explicit ParallelGzipOstream(const std::string& filename)
-    : file_path_(filename, std::ios::binary), std::ostream(nullptr), buffer_(file_path_)
+    explicit ParallelGzipOstream(const std::string& filename, const int threads = 1)
+    : file_path_(filename, std::ios::binary), std::ostream(nullptr), buffer_(file_path_, threads_)
     {
       if (!file_path_)
-      {
-        throw std::ios_base::failure("Failed to open file: " + filename);
-      }
-      rdbuf(&buffer_);
-    }
-
-    ParallelGzipOStream(const std::string& filename, std::size_t bufferSize)
-    : file_path_(filename, std::ios::binary), std::ostream(nullptr), buffer_(file_path_, bufferSize)
-    {
-      if (!file_path_) 
       {
         throw std::ios_base::failure("Failed to open file: " + filename);
       }
