@@ -8,6 +8,11 @@ main
 compressed_output
 compressed_output2.txt
 compressed_output.txt
-CMAKEFiles
-CMakeCache
 bin/*
+old_code_mess.cpp
+.gitignore
+main
+CMakeCache.txt
+cmake_install.cmake
+old_code_mess.h
+CMakeFiles/*

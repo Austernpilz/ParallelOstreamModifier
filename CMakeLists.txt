@@ -12,8 +12,16 @@ set(CUSTOM_CXX_FLAGS "-march=native" CACHE STRING "Custom C++ compiler flags")
 
 find_package(ZLIB)
 
+set(SOURCES
+    test2.cpp
+    src/modifier/ParallelDataModifier.cpp
+    src/modifier/GzipCompressor.cpp
+)
+
 # Setup executable
-add_executable(main ParallelGzipStreambuf.cpp)
+
+# Setup executable
+add_executable(main ${SOURCES})
 
 target_link_libraries(main PRIVATE ZLIB::ZLIB)
 
