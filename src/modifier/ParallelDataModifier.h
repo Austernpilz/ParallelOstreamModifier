@@ -75,7 +75,7 @@ class ParallelDataModifier
     struct ThreadFuture
     {
       uint64_t id;
-      std::future<bytes_> future_;
+      std::future<bytes_> result_;
     };
 
     std::deque<ThreadTask> tasks_;

@@ -4,7 +4,7 @@
 #include <vector>
 #include <functional>
 
-#include "ParallelDataProcessing.h"
+#include "ParallelDataModifier.h"
 
 class ParallelStreambufModifier : public std::streambuf
 {
@@ -76,23 +76,10 @@ class ParallelStreambufModifier : public std::streambuf
     int_type overflow(int_type ch) override;
     
   private:
-    bool flush(){};
+    bool flush_buffer(){};
 
     ParallelDataProcessing modifier_;
     std::vector<char> buffer_(10 * 1024 * 1024);
     std::ostream& ostream_;
     std::mutex write_mutex_;
 };
-
-
-    
-
-  private:
-    int flushBuffer();
-
-    
-
-    std::ostream& ostream_ = nullptr;
-    std::vector<char> buffer_(10*1024*1024); // 10 mb
-    ParallelDataModifier modifier_;
-  };
