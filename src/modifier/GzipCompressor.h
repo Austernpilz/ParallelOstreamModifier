@@ -7,7 +7,7 @@
 
 struct GzipCompressor
 {
-  std::size_t compression_chunk_size_ = 32 * 1024;
+  std::size_t compression_chunk_size_ = 32 * 1024; //32kb
   int compression_level_ = Z_DEFAULT_COMPRESSION;
   int compression_strategy_ = Z_DEFAULT_STRATEGY;
   int compression_memory_level_ = 8;

@@ -8,6 +8,7 @@ void ParallelDataModifier::enqueue_task(std::vector<char>&& data)
   {
     return;
   }
+  
   std::deque<ThreadTask> new_tasks;
   std::deque<ThreadFuture> new_results;
   std::size_t data_chunk_size = data.size() / static_cast<std::size_t>(threads_);
@@ -27,9 +28,9 @@ void ParallelDataModifier::enqueue_task(std::vector<char>&& data)
     uint64_t id = current_id++;
     //lambda expression for my task
     std::packaged_task<bytes_()> var_task(
-      [fn = compute_fn_, c = std::move(chunk)]()
+      [&]()
       {
-        return fn(c);
+        return compute_fn_(std::move(chunk));
       });
     //save the result in a future seperatly
     std::future<bytes_> var_future = var_task.get_future();
