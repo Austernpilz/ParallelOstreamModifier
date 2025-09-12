@@ -10,7 +10,7 @@
 #include <cassert>
 
 // --- Utilities ---
-using vec_ch = std::vector<char>
+
 std::vector<char> read_file(const std::string& path)
 {
   std::ifstream in(path, std::ios::binary | std::ios::ate);
@@ -31,7 +31,7 @@ int gzip_decompress(FILE *source, FILE *dest)
     int ret, flush;
     unsigned have;
     z_stream strm;
-    int CHUNK = 256*1024
+    unsigned CHUNK = 256*1024;
     unsigned char in[256*1024];
     unsigned char out[256*1024];
 
@@ -83,7 +83,7 @@ int gzip_decompress(FILE *source, FILE *dest)
 
 
 // Validate buffers and print first mismatch
-bool validate_buffers(const vec_ch& original, const vec_ch& decompressed)
+bool validate_buffers(const std::vector<char>& original, const std::vector<char>& decompressed)
 {
   bool test = true;
   if (original.size() != decompressed.size())
@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
 
 
 
-// using vec_ch = std::vector<char>;
+// using std::vector<char> = std::vector<char>;
 
 // // Read an entire file into a vector<char>
 // std::vector<char> read_file(const std::string& path) {
@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
 // }
 
 // // Simple gzip decompression
-// vec_ch gzip_decompress(const std::string& path)
+// std::vector<char> gzip_decompress(const std::string& path)
 // {
 //   std::vector<char> out(1024*1024);
 //   z_stream strm{};
@@ -224,9 +224,9 @@ int main(int argc, char* argv[]) {
 
 
 // // Random data generator
-// vec_ch random_bytes(std::size_t size, std::mt19937_64& rng)
+// std::vector<char> random_bytes(std::size_t size, std::mt19937_64& rng)
 // {
-//   vec_ch random_data(size);
+//   std::vector<char> random_data(size);
 //   std::uniform_int_distribution<int> distribution(0, 255);
 //   for (auto &c : random_data) 
 //   {
@@ -250,14 +250,14 @@ int main(int argc, char* argv[]) {
 //     return gzip(input);
 //   });
 
-//   vec_ch original;
+//   std::vector<char> original;
 //   original.reserve(cfg.data_size);
 
 //   auto start = std::chrono::high_resolution_clock::now();
 
 //   for (std::size_t done = 0; done < cfg.data_size; done += cfg.chunk_size)
 //   {
-//     vec_ch buf = random_bytes(std::min(cfg.chunk_size, cfg.data_size - done), rng);
+//     std::vector<char> buf = random_bytes(std::min(cfg.chunk_size, cfg.data_size - done), rng);
 //     original.insert(original.end(), buf.begin(), buf.end());
 //     parallel_out << buf;
 //   }
@@ -266,8 +266,8 @@ int main(int argc, char* argv[]) {
 
 //   auto mid = std::chrono::high_resolution_clock::now();
 
-//   vec_ch compressed(compressed_stream.str().begin(), compressed_stream.str().end());
-//   vec_ch decompressed = gzip_decompress(compressed);
+//   std::vector<char> compressed(compressed_stream.str().begin(), compressed_stream.str().end());
+//   std::vector<char> decompressed = gzip_decompress(compressed);
 //   auto end = std::chrono::high_resolution_clock::now();
 
 //   bool ok = validate_buffers(original, decompressed);
