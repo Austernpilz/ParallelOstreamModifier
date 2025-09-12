@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/mi/manuez42/Dokumente/testtest
+CMAKE_SOURCE_DIR = /buffer/ag_bsc/pmsb/mzs/ParallelOstreamModifier
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/mi/manuez42/Dokumente/testtest
+CMAKE_BINARY_DIR = /buffer/ag_bsc/pmsb/mzs/ParallelOstreamModifier
 
 #=============================================================================
 # Targets provided globally by CMake.
