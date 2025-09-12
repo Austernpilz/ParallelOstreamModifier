@@ -74,7 +74,8 @@ class ParallelDataModifier
       ThreadTask(uint64_t id, std::packaged_task<vec_ch()>&& task)
         : id_(id), task_(std::move(std::move(task)))
       {}
-      
+
+      ThreadTask& operator=(ThreadTask&&) = default;     // movable
       std::size_t id_{0};
       std::packaged_task<vec_ch()> task_;
     };
@@ -90,7 +91,7 @@ class ParallelDataModifier
       ThreadFuture(uint64_t id, std::future<vec_ch>&& task)
         : id_(id), result_(std::move(std::move(task)))
       {}
-      
+      ThreadFuture& operator=(ThreadFuture&&) = default;     // movable
       std::size_t id_{0};
       std::future<vec_ch> result_;
     };
