@@ -121,7 +121,7 @@ void ParallelDataModifier::flush_to(std::ostream &os)
 
   while(!local_results.empty())
   {
-    for (auto &result : local) 
+    for (auto &result : local_results) 
     {
       if ( result.id_ == next_id_)
       {
@@ -139,14 +139,14 @@ vec_ch ParallelDataModifier::flush()
   {
     std::unique_lock<std::mutex> result_lock(result_deque_mutex_);
     local_results.swap(results_);
-    std::size_t next_id_ = current_id_ - statlocal_results.size()
+    std::size_t next_id_ = current_id_ - local_results.size()
   }
 
   vec_ch output.resize(local_results.size());
 
   while(!local_results.empty())
   {
-    for (auto &result : local) 
+    for (auto &result : local_results) 
     {
       if ( result.id_ == next_id_)
       {
@@ -300,9 +300,9 @@ void ParallelDataModifier::finish_up()
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     stop_ = true;
-    while (!tasks_.empty()) { std::this_thread::sleep_for(std::chrono::seconds(1)) }
-    while (workers_.size() > 1 ) {stop_worker()}
-    while (workers_.size() > 1) {stop_worker()}
+    while (!tasks_.empty()) { std::this_thread::sleep_for(std::chrono::seconds(1)); }
+    while (workers_.size() > 1 ) {stop_worker();}
+    while (workers_.size() > 1) {stop_worker();}
   }
 }
 

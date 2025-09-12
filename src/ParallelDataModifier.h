@@ -97,7 +97,7 @@ class ParallelDataModifier
     
     struct Worker
     {
-      std::atomic<bool> running{false};
+      bool running{false};
       std::thread thread;
     };
 
