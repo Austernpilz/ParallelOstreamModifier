@@ -57,6 +57,7 @@ class ParallelStreambufModifier : public std::streambuf
       sync();
     }
     void set_continues_write(bool c) {};
+    
   protected:
     int sync() override;
     std::streamsize xsputn(const char* s, std::streamsize count) override;

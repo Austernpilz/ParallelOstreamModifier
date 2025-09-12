@@ -86,37 +86,6 @@ int gzip_decompress(FILE *source, FILE *dest)
 }
 
 
-// Validate buffers and print first mismatch
-bool validate_buffers(const std::vector<char>& original, const std::vector<char>& decompressed)
-{
-  bool test = true;
-  if (original.size() != decompressed.size())
-  {
-    std::cout << "Size mismatch: original " << original.size()
-              << ", decompressed " << decompressed.size() << "\n";
-    test = false;
-  }
-  for (std::size_t i = 0; i < original.size(); ++i)
-  {
-    if (original[i] != decompressed[i])
-    {
-      std::cout << "Mismatch at byte " << i
-                << ": original=" << int(original[i])
-                << ", decompressed=" << int(decompressed[i]) << "\n";
-      test = false;
-    }
-  }
-  return test;
-}
-
-struct TestSample
-{
-  std::size_t data_size;
-  std::size_t chunk_size;
-  int threads;
-  std::size_t buffer_size;
-};
-
 // --- Test function ---
 bool compress_file_through_parallel_ostream(const std::string& input_path,
                                             const std::string& compressed_path,
