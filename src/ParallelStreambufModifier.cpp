@@ -21,19 +21,19 @@ void ParallelStreambufModifier::set_mod_function(std::function<std::vector<char>
 //   return ostream_;
 // }
 
-void ParallelStreambufModifier::set_ostream(std::ostream& os)
-{
-  sync();
-  ostream_ = os;
-  modifier_.flush_to(os, continues_write_);
-}
+// void ParallelStreambufModifier::set_ostream(std::ostream& os)
+// {
+//   sync();
+//   ostream_ = os;
+//   modifier_.flush_to(os, continues_write_);
+// }
 
 // std::ostream get_ostream() const
 // {
 //   return ostream_
 // }
 
-void ParallelStreambufModifier::set_buffer_size(const std::size_t &buffer_size)
+void ParallelStreambufModifier::set_buffer_size(std::size_t buffer_size)
 {
   sync();
   buffer_.resize(buffer_size);

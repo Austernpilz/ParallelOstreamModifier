@@ -12,7 +12,7 @@ class ParallelOstreamModifier : public std::ostream
     ParallelOstreamModifier(std::ostream &os, int threads = 1)
       : underlying_(os), std::ostream(&buffer_), buffer_(underlying_, threads)
     {
-      buffer_.set_ostream(os);
+      // buffer_.set_ostream(os);
       rdbuf(&buffer_);
     }
     
@@ -52,10 +52,10 @@ class ParallelOstreamModifier : public std::ostream
     //   return buffer_.get_mod_function();
     // }
 
-    void set_ostream(std::ostream &new_os)
-    {
-      buffer_.set_ostream(new_os);
-    }
+    // void set_ostream(std::ostream &new_os)
+    // {
+    //   buffer_.set_ostream(new_os);
+    // }
 
   // std::ostream get_ostream() const
   // {
