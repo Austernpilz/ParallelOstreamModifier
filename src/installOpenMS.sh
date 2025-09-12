@@ -36,6 +36,7 @@ cmake $contrib_src -dbuild_type=all -dnumber_of_jobs=$(nproc)
 cmake --build . --parallel
 cmake --install .
 
+cd $dev
 wget https://download.qt.io/official_releases/qt/6.9/6.9.2/single/qt-everywhere-src-6.9.2.tar.xz
 tar xf qt-everywhere-src-6.9.2.tar.xz
 cd qt-everywhere-src-6.9.2
