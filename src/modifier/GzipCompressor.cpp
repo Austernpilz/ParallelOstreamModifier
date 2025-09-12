@@ -1,6 +1,6 @@
 #include "GzipCompressor.h"
 
-std::vector<char> GzipCompressor::operator()(std::vector<char> &input) const 
+std::vector<char> operator()(const std::vector<char> &input) const 
 {
   std::vector<char> compressed_output;
   std::vector<char> zbuffer(compression_chunk_size_);
@@ -17,11 +17,12 @@ std::vector<char> GzipCompressor::operator()(std::vector<char> &input) const
   strm.next_in = reinterpret_cast<Bytef*>(input.data());
   strm.avail_in = static_cast<uInt>(input.size());
 
+  int ret;
   do {
     strm.next_out = reinterpret_cast<Bytef*>(zbuffer.data());
     strm.avail_out = static_cast<uInt>(zbuffer.size());
 
-    int ret = deflate(&strm, strm.avail_in ? Z_NO_FLUSH : Z_FINISH);
+    ret = deflate(&strm, strm.avail_in ? Z_NO_FLUSH : Z_FINISH);
     if (ret == Z_STREAM_ERROR)
     {
       deflateEnd(&strm);
@@ -30,7 +31,7 @@ std::vector<char> GzipCompressor::operator()(std::vector<char> &input) const
     std::size_t have = zbuffer.size() - strm.avail_out;
     compressed_output.insert(compressed_output.end(),
                               zbuffer.data(), zbuffer.data() + have);
-  } while (strm.avail_out == 0);
+  } while (ret != Z_STREAM_EN);
 
   deflateEnd(&strm);
   return compressed_output;

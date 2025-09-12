@@ -1,18 +1,23 @@
 #pragma once 
 
+#pragma once
+
 #include <streambuf>
 #include <vector>
 #include <functional>
+#include <mutex>
+#include <ostream>
 
 #include "ParallelDataModifier.h"
 
 class ParallelStreambufModifier : public std::streambuf
 {
   public:
-    ParallelStreambufModifier(std::ostream &os, int nthreads)
-      : ostream_(os), modifier_(nthreads)
+    ParallelStreambufModifier(std::ostream &os, int threads)
+      : ostream_(os), modifier_(threads)
     {
       setp(buffer_.data(), buffer_.data() + buffer_.size());
+      if (threads < 3) { continues_write_ = false; }
     }
 
     // Move constructor
@@ -43,31 +48,12 @@ class ParallelStreambufModifier : public std::streambuf
       return *this;
     }
 
-    ParallelStreambufModfier(const ParallelStreambufModfier&) = delete;
-    ParallelStreambufModfier& operator=(const ParallelStreambufModfier&) = delete;
+    ParallelStreambufModifier(const ParallelStreambufModifier&) = delete;
+    ParallelStreambufModifier& operator=(const ParallelStreambufModifier&) = delete;
 
     ~ParallelStreambufModfier()
     {
-      sync()
-      delete modifier_
-      delete buffer_
-    }
-
-    void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod) 
-    {
-      modifier_.set_mod_function(fn_mod);
-    }
-
-    void set_ostream(std::ostream& os)
-    {
-      ostream_ = &os
-    }
-
-    void set_buffer_size(std::size_t buffer_size)
-    {
-      sync()
-      buffer_.resize(buffer_size)
-      setp(buffer_.data(), buffer_.data() + buffer_.size());
+      sync();
     }
 
   protected:
@@ -78,8 +64,8 @@ class ParallelStreambufModifier : public std::streambuf
   private:
     bool flush_buffer(){};
 
-    ParallelDataProcessing modifier_;
-    std::vector<char> buffer_(10 * 1024 * 1024);
+    ParallelDataModifier modifier_;
+    std::vector<char> buffer_{10 * 1024 * 1024};
     std::ostream& ostream_;
-    std::mutex write_mutex_;
+    bool continues_write_ = true;
 };

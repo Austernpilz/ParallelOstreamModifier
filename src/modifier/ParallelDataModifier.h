@@ -21,76 +21,96 @@
 #include <utility>
 #include <vector>
 #include "GzipCompressor.h"
-
+#include <atomic>
 
 class ParallelDataModifier
 {
   public:
-    using bytes_ = std::vector<char>;
-    using mod_fn_ = std::function<bytes_(const bytes_&)>;
+    using vec_ch = std::vector<char>;
+    // using mod_fn_ = std::function<bytes_(const bytes_&)>;
     
     ParallelDataModifier(std::ostream &os, int threads = 1) 
       : threads_(std::max(1, threads)),
-        stop_(false),
         os_(os)
     {
-      workers_.reserve(threads_);
-      for (int i = 1; i < threads_; ++i) 
-      {
-        workers_.emplace_back(&ParallelDataModifier::worker_thread, this);
-      }
-      workers_.emplace_back(&ParallelDataModifier::writer_thread, this);
+      current_id = 0;
+      next_id = 1;
     }
 
-    ~ParallelDataModifier() = default;
-
-    void set_flags(const char* flag)
+    ~ParallelDataModifier()
     {
-      if (flag == "gzip")
-      {
-        set_mod_function(GzipCompressor());
-      }
+      finish_up();
     };
 
-    void set_mod_function(mod_fn_ fn)
-    {
-      compute_fn_ = fn;
-    }
-
-    void enqueue_task(bytes_ &&data);
+    void enqueue_task(vec_ch &&data);
 
     void flush_to(std::ostream &os);
 
-    bytes_ flush();
+    void flush_to(std::ostream &os, bool continues_write);
+
+    vec_ch flush();
 
   private:
     void worker_thread();
     void writer_thread();
+
     struct ThreadTask
     {
-      uint64_t id;
-      std::packaged_task<bytes_()> task_;
+      ThreadTask() = default;
+
+      ThreadTask(ThreadTask&& other_tt)
+        : id(other_tt.id), task(std::move(other_tt.task))
+      {}
+    
+      ThreadTask(uint64_t id, std::packaged_task<vec_ch()>&& task)
+        : id(id), task_(std::move(std::move(task)))
+      {}
+      
+      std::size_t id_{0}
+      std::packaged_task<vec_ch()> task_;
     };
 
     struct ThreadFuture
     {
-      uint64_t id;
-      std::future<bytes_> result_;
+      ThreadFuture() = default
+
+      ThreadFuture(ThreadFuture&& other_tf)
+        : id(other_tf.id), task(std::move(other_tf.task))
+      {}
+    
+      ThreadFuture(uint64_t id, std::packaged_task<vec_ch()>&& task)
+        : id(id), task_(std::move(std::move(task)))
+      {}
+      
+      std::size_t id_{0}
+      std::future<vec_ch> result_;
+    };
+    
+    struct Worker
+    {
+      std::atomic<bool> running{false};
+      std::thread thread;
     };
 
     std::deque<ThreadTask> tasks_;
     std::deque<ThreadFuture> results_;
-    std::vector<std::thread> workers_;
-    mod_fn_ compute_fn_;
+    std::vector<Worker> workers_;
+    std::vector<Worker> writers_;
+
+    std::function<vec_ch(const vec_ch&)> compute_fn_;
 
     std::mutex task_deque_mutex_;
     std::mutex result_deque_mutex_;
+    std::mutex Worker_mutex_;
 
     std::condition_variable call_for_task_;
 
-    uint64_t current_id;
+    std::size_t current_i = 0;
+    std::size_t next_id = 1;
+
     std::ostream &os_;
-    int threads_;
-    bool stop_;
+    int threads_ = 1;
+    bool stop_ = false;
+    bool unbalanced_ = false;
 };
     

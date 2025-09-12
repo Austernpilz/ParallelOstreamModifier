@@ -11,19 +11,19 @@
 # define your paths
 dev=/buffer/ag_bsc/pmsb/mzs
 
-contrib_build=$dev/contrib-build
-contrib_src=$OpenMS_src/contrib
+contrib_build=/buffer/ag_bsc/pmsb/mzs/contrib-build
+contrib_src=/buffer/ag_bsc/pmsb/mzs/OpenMS/contrib
 
-qt_src=$dev/qt-everywhere-src-6.5.3
-qt_build=$dev/qt6-build
+qt_src=/buffer/ag_bsc/pmsb/mzs/qt-everywhere-src-6.5.3
+qt_build=/buffer/ag_bsc/pmsb/mzs/qt6-build
 
-OpenMS_src=$dev/OpenMS
-OpenMS_build=$dev/OpenMS-build
-
+openms_src=/buffer/ag_bsc/pmsb/mzs/OpenMS
+openms_debug=/buffer/ag_bsc/pmsb/mzs/OpenMS-build/debug
+openms_release=/buffer/ag_bsc/pmsb/mzs/OpenMS-build/release
 
 # clone OpenMS
-git clone https://github.com/OpenMS/OpenMS.git $OpenMS_src
-cd $OpenMS_src
+git clone https://github.com/OpenMS/OpenMS.git $openms_src
+cd $openms_src
 git submodule update --init contrib
 
 # builupdate and build contrib
@@ -31,49 +31,62 @@ git submodule update --init contrib
 mkdir -p $contrib_build
 cd $contrib_build
 
-cmake $contrib_src -dbuild_type=all -dnumber_of_jobs=$(nproc)
-cmake --build . --parallel --VERBOSE=1 
-cmake --install .
+cmake $contrib_src -DBUILD_TYPE=ALL -DNUMBER_OF_JOBS=$(nproc)
+cmake $contrib_src -DBUILD_TYPE=EIGEN -DNUMBER_OF_JOBS=$(nproc)
 
 # get qt and install
-cd $dev
-wget https://download.qt.io/official_releases/qt/6.9/6.9.2/single/qt-everywhere-src-6.9.2.tar.xz
-tar xf qt-everywhere-src-6.9.2.tar.xz
-cd qt-everywhere-src-6.9.2
 
 # rm -rf qt*
-mkdir -p $qt_build
-cd $qt_build
+cd $dev
+wget https://download.qt.io/official_releases/qt/6.5/6.5.3/single/qt-everywhere-src-6.5.3.tar.xz
+tar xf qt-everywhere-src-6.5.3.tar.xz
 
-cmake $qt_src \
-  -dcmake_install_prefix=$qt_build \
-  -dcmake_build_type=release \
-  -dqt_feature_qttools=off \
-  -dqt_feature_qtdoc=off \
-  -dqt_feature_qttranslations=off \
+mkdir -p $qt_build
+cd $qt_src
+#u can only have a messy instalation becaue qt doesn't care
+
+./configure --prefix=. \
+            -skip qttools \
+            -skip qtdoc \
+            -skip qttranslations
 
 cmake --build . --parallel --VERBOSE=1 
 cmake --install .
 
 # finally build OpenMS
-# rm -rf $OpenMS_build
-mkdir -p $OpenMS_build
-cd $OpenMS_build
+# rm -rf $openms_build
+mkdir -p $openms_build
+cd $openms_build
 
-cmake $OpenMS_src \
-  -dcmake_build_type=debug \
-  -denable_update_check=off \
-  -dopenms_contrib_libs="$contrib_build" \
-  -dcmake_prefix_path="$HOME/.local" \
-  -dqt6_dir="$qt_build/lib/cmake/Qt6" \
-  -dcmake_install_prefix="$OpenMS_build" \
-  -dwith_gui=on \
-  -dboost_use_static=on \
-  -dboost_no_boost_cmake=on \
-  -dboost_use_debug_libs=on \
-  -dboost_architecture="-x64" \
-  -dmy_cxx_flags="-Og -ggdb -g3 -fno-omit-frame-pointer -fsanitize=address" \
-  -dopenms_use_address_sanitizer=on
+cmake $openms_src \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DENABLE_UPDATE_CHECK=OFF \
+  -DOPENMS_CONTRIB_LIBS="$contrib_build" \
+  -DCMAKE_PREFIX_PATH="$HOME/.local" \
+  -DQt6_DIR="$qt_build/lib/cmake/Qt6" \
+  -DCMAKE_INSTALL_PREFIX="$openms_debug" \
+  -DBOOST_USE_STATIC=ON \
+  -DBoost_NO_BOOST_CMAKE=ON \
+  -DBoost_USE_DEBUG_LIBS=ON \
+  -DBoost_ARCHITECTURE="-x64" \
+  -DMY_CXX_FLAGS="-Og -ggdb -g3 -fno-omit-frame-pointer -fsanitize=address" \
+  -DOPENMS_USE_ADDRESS_SANITIZER=ON
 
+cmake $openms_src \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_UPDATE_CHECK=OFF \
+  -DOPENMS_CONTRIB_LIBS="$contrib_build" \
+  -DCMAKE_PREFIX_PATH="$HOME/.local" \
+  -DQt6_DIR="$qt_build/lib/cmake/Qt6" \
+  -DCMAKE_INSTALL_PREFIX="$openms_release" \
+  -DBOOST_USE_STATIC=ON \
+  -DBoost_NO_BOOST_CMAKE=ON \
+  -DBoost_ARCHITECTURE="-x64"
+
+DENABLE_UPDATE_CHECK=Off \
+-DCMAKE_BUILD_TYPE=Debug \
+-DOPENMS_CONTRIB_LIBS=/buffer/ag_bsc/pmsb_openms_contrib/contrib_build \
+-DBOOST_USE_STATIC=ON \
+-DQt6_DIR=/buffer/ag_bsc/pmsb_openms_contrib/qt-everywhere-src-6.7.3/lib/cmake/Qt6/ 
 cmake --build . --parallel --VERBOSE=1 
 cmake --install .

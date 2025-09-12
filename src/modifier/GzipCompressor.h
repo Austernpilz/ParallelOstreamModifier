@@ -7,7 +7,7 @@
 
 struct GzipCompressor
 {
-  std::size_t compression_chunk_size_ = 32 * 1024; //32kb
+  std::size_t compression_chunk_size_ = 256 * 1024; //256kb
   int compression_level_ = Z_DEFAULT_COMPRESSION;
   int compression_strategy_ = Z_DEFAULT_STRATEGY;
   int compression_memory_level_ = 8;
@@ -32,5 +32,5 @@ struct GzipCompressor
     compression_memory_level_ = lvl;
   }
 
-  std::vector<char> operator()(std::vector<char> input) const;
+  std::vector<char> operator()(const std::vector<char> &input) const;
 };
