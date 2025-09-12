@@ -56,7 +56,7 @@ class ParallelDataModifier
     vec_ch flush();
     void finish_up();
     void start_worker();
-    void start_writer(std::ostream &os)
+    void start_writer(std::ostream &os);
     void stop_worker();
     void stop_writer();
   private:

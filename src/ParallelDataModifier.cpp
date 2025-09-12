@@ -90,9 +90,9 @@ void ParallelDataModifier::enqueue_task(vec_ch&& data)
       results_.push_back(std::move(r));
       call_for_result_.notify_one();
     }
-    result_size = task_.size()
+    result_size = results_.size();
   }
-  unbalanced_ = (task_size*2) < result_size
+  unbalanced_ = (task_size*2) < result_size;
 }
   
 
