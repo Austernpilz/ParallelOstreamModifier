@@ -9,6 +9,10 @@
 #include <zlib.h>
 #include <cassert>
 
+#include "ParallelOstreamModifier.h"  
+#include "GzipCompressor.h"
+
+
 // --- Utilities ---
 
 std::vector<char> read_file(const std::string& path)
