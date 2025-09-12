@@ -120,7 +120,7 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
                                             std::size_t buffer_size = 1024*1024)
 {
     auto original = read_file(input_path);
-    test = true;
+    bool test = true;
     // Output file stream
     std::ofstream compressed_file(compressed_path, std::ios::binary);
     if (!compressed_file)
@@ -135,7 +135,11 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
 
     // Feed original data through << operator
     auto start = std::chrono::high_resolution_clock::now();
-    parallel_out << original;
+    for (auto& d : original)
+    {
+      parallel_out << d;
+    }
+    
 
     // Flush all tasks and write to file
     parallel_out.flush();
