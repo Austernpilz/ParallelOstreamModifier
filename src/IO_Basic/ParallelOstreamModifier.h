@@ -41,12 +41,7 @@ class ParallelOstreamModifier : public std::ostream
     {
       delete buffer_;
     }
-
-    void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod) 
-    {
-      buffer_.set_mod_function(fn_mod);
-    }
-
+    
   private:
       ParallelStreambufModifier buffer_;
 };
