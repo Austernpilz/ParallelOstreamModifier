@@ -1,0 +1,3 @@
+/Users/m/Desktop/bsc praktikum/ParallelOstreamModifier/CMakeFiles/main.dir
+/Users/m/Desktop/bsc praktikum/ParallelOstreamModifier/CMakeFiles/edit_cache.dir
+/Users/m/Desktop/bsc praktikum/ParallelOstreamModifier/CMakeFiles/rebuild_cache.dir

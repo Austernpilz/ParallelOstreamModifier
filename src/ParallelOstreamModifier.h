@@ -43,7 +43,7 @@ class ParallelOstreamModifier : public std::ostream
     // not sure if necessary or default c++ can handle that
     ~ParallelOstreamModifier() override = default;
     
-    void set_mod_function(std::function<std::vector<char>(std::vector<char>&&)> fn_mod) 
+    void set_mod_function(std::function<std::vector<unsigned char>(std::vector<unsigned char>&&)> fn_mod) 
     {
       buffer_.set_mod_function(fn_mod);
     }
@@ -85,13 +85,14 @@ class ParallelOstreamModifier : public std::ostream
   //   return buffer_.get_buffer_size();
   // }
     
-  ParallelOstreamModifier& operator<<(const std::vector<char>& data)
+  ParallelOstreamModifier& operator<<(const std::vector<unsigned char>& data)
   {
-    write(data.data(), data.size());
+    write(reinterpret_cast<const char*>(data.data()),
+          static_cast<std::streamsize>(data.size()));
     return *this;
   }
 
-  ParallelOstreamModifier& operator<<(char c)
+  ParallelOstreamModifier& operator<<(unsigned char c)
   {
     write(&c, 1);
     return *this;

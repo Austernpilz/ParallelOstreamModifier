@@ -5,7 +5,7 @@
 
 #include "ParallelOstreamModifier.h"
 
-void ParallelStreambufModifier::set_mod_function(std::function<std::vector<char>(std::vector<char>&&)> fn_mod) 
+void ParallelStreambufModifier::set_mod_function(std::function<std::vector<unsigned char>(std::vector<unsigned char>&&)> fn_mod) 
 {
   sync();
   modifier_.set_mod_function(fn_mod);
@@ -110,7 +110,7 @@ std::streamsize ParallelStreambufModifier::xsputn(const char* s, std::streamsize
     flush_buffer();
     if (s_size > buffer_.size()) 
     {
-      modifier_.enqueue_task(std::vector<char>(s, s + s_size));
+      modifier_.enqueue_task(std::vector<unsigned char>(s, s + s_size));
     }
     else
     {
@@ -135,7 +135,7 @@ void ParallelStreambufModifier::flush_buffer()
   std::ptrdiff_t size = pptr() - pbase();
   if (size <= 0) { return; }
 
-  std::vector<char> data;
+  std::vector<unsigned char> data;
   data.insert(data.end(), pbase(), pbase() + size);
   modifier_.enqueue_task(std::move(data));
 

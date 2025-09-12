@@ -26,7 +26,7 @@
 class ParallelDataModifier
 {
   public:
-    using vec_ch = std::vector<char>;
+    using vec_ch = std::vector<unsigned char>;
     // using mod_fn_ = std::function<bytes_(const bytes_&)>;
     
     ParallelDataModifier(int threads = 1) 

@@ -34,5 +34,5 @@ struct GzipCompressor
     compression_memory_level_ = lvl;
   }
 
-  std::vector<char> operator()(std::vector<char> &&input);
+  std::vector<unsigned char> operator()(std::vector<unsigned char> &&input);
 };

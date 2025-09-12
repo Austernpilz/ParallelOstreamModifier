@@ -1,9 +1,9 @@
 #include "GzipCompressor.h"
 
-std::vector<char> GzipCompressor::operator()(std::vector<char> &&input) 
+std::vector<unsigned char> GzipCompressor::operator()(std::vector<unsigned char> &&input) 
 {
-  std::vector<char> compressed_output;
-  std::vector<char> zbuffer(compression_chunk_size_);
+  std::vector<unsigned char> compressed_output;
+  std::vector<unsigned char> zbuffer(compression_chunk_size_);
 
   z_stream strm{};
   if (deflateInit2(&strm, compression_level_, Z_DEFLATED,

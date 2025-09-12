@@ -56,14 +56,14 @@ cmake --install .
 # finally build OpenMS
 # rm -rf $openms_build
 mkdir -p $openms_build
-cd $openms_build
+cd $openms_debug
 
 cmake $openms_src \
-  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_BUILD_TYPE=Release \
   -DENABLE_UPDATE_CHECK=OFF \
   -DOPENMS_CONTRIB_LIBS="$contrib_build" \
   -DCMAKE_PREFIX_PATH="$HOME/.local" \
-  -DQt6_DIR="$qt_build/lib/cmake/Qt6" \
+  -DQt6_DIR="$qt_src/lib/cmake/Qt6" \
   -DCMAKE_INSTALL_PREFIX="$openms_debug" \
   -DBOOST_USE_STATIC=ON \
   -DBoost_NO_BOOST_CMAKE=ON \

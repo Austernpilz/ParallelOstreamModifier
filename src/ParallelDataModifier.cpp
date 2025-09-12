@@ -2,12 +2,13 @@
 
 
 
-using vec_ch = std::vector<char>;
+using vec_ch = std::vector<unsigned char>;
 
 // bool ParallelDataModifier::get_unbalanced()
 // {
 //   return unbalanced_;
 // }
+
 
 void ParallelDataModifier::set_threads(int threads)
 {
@@ -95,7 +96,6 @@ void ParallelDataModifier::enqueue_task(vec_ch&& data)
 }
   
 
-
 void ParallelDataModifier::flush_to(std::ostream &os, bool continues_write)
 {
   if (continues_write)
@@ -125,8 +125,11 @@ void ParallelDataModifier::flush_to(std::ostream &os)
     {
       if ( result.id_ == next_id_)
       {
-        vec_ch data_chunk = result.result_.get(); 
-        os.write(data_chunk.data(), static_cast<std::streamsize>(data_chunk.size()));
+        vec_ch data_chunk = result.result_.get();
+        
+        os.write(reinterpret_cast<const char*>(data_chunk.data()),
+          static_cast<std::streamsize>(data_chunk.size()));
+         
         ++next_id_;
       }
     }
@@ -265,7 +268,9 @@ void ParallelDataModifier::writer_thread(std::ostream &os, int id)
         if (found.id_ == next_id_)
         {
           vec_ch result = found.result_.get();
-          os.write(result.data(), static_cast<std::streamsize>(result.size()));
+          
+          os.write(reinterpret_cast<const char*>(result.data()),
+            static_cast<std::streamsize>(result.size()));
           ++next_id_;
           results_.pop_front();
         }
@@ -281,7 +286,8 @@ void ParallelDataModifier::writer_thread(std::ostream &os, int id)
           {
             ThreadFuture& found = *it;
             vec_ch result = found.result_.get();
-            os.write(result.data(), static_cast<std::streamsize>(result.size()));
+            os.write(reinterpret_cast<const char*>(result.data()), 
+              static_cast<std::streamsize>(result.size()));
             ++next_id_;
           }
         }
