@@ -107,7 +107,7 @@ class ParallelDataModifier
     std::vector<Worker> workers_;
     std::vector<Worker> writers_;
 
-    std::function<vec_ch(const vec_ch&)> compute_fn_;
+    std::function<vec_ch(vec_ch&)> compute_fn_;
 
     std::mutex task_deque_mutex_;
     std::mutex result_deque_mutex_;

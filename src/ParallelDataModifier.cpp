@@ -112,7 +112,7 @@ void ParallelDataModifier::flush_to(std::ostream &os, bool continues_write)
 void ParallelDataModifier::flush_to(std::ostream &os)
 {
   std::deque<ThreadFuture> local_results;
-  std::size_t next_id_
+  std::size_t next_id_;
   {
     std::unique_lock<std::mutex> result_lock(result_deque_mutex_);
     local_results.swap(results_);
@@ -297,7 +297,7 @@ void ParallelDataModifier::finish_up()
     {
       std::unique_lock<std::mutex> task_mutex_(task_deque_mutex_);
       if (tasks_.empty()) break;
-      task_deque_mutex_.unlock();
+      task_mutex_.unlock();
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     stop_ = true;
