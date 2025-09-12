@@ -32,7 +32,7 @@ mkdir -p $contrib_build
 cd $contrib_build
 
 cmake $contrib_src -dbuild_type=all -dnumber_of_jobs=$(nproc)
-cmake --build . --parallel
+cmake --build . --parallel --VERBOSE=1 
 cmake --install .
 
 # get qt and install
@@ -52,7 +52,7 @@ cmake $qt_src \
   -dqt_feature_qtdoc=off \
   -dqt_feature_qttranslations=off \
 
-cmake --build . --parallel
+cmake --build . --parallel --VERBOSE=1 
 cmake --install .
 
 # finally build OpenMS
@@ -75,5 +75,5 @@ cmake $OpenMS_src \
   -dmy_cxx_flags="-Og -ggdb -g3 -fno-omit-frame-pointer -fsanitize=address" \
   -dopenms_use_address_sanitizer=on
 
-make -j$(nproc) verbose=1
-make install
+cmake --build . --parallel --VERBOSE=1 
+cmake --install .
