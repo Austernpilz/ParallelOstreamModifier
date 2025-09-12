@@ -113,6 +113,7 @@ class ParallelDataModifier
     std::mutex worker_mutex_;
 
     std::condition_variable call_for_task_;
+    std::condition_variable call_for_result_;
 
     std::size_t current_id_ = 0;
     std::size_t next_id_ = 1;
