@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <zlib.h>
+#include <cassert>
 
 // --- Utilities ---
 
@@ -29,6 +31,7 @@ std::vector<char> gzip_decompress(FILE *source, FILE *dest)
     int ret, flush;
     unsigned have;
     z_stream strm;
+    CHUNK = 256*1024
     unsigned char in[256*1024];
     unsigned char out[256*1024];
 
@@ -165,7 +168,7 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
 int main(int argc, char* argv[]) {
 
     std::string input_path = argv[1];
-    std::string compressed_path = "test.MzML.gzip"
+    std::string compressed_path = "test.MzML.gzip";
 
     bool ok = compress_file_through_parallel_ostream(input_path, compressed_path, 40, 1*1024*1024);
 
