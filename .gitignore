@@ -1,6 +1,6 @@
 # Ignore everything
 *
-
+CMakeCache.txt
 # Allow all folders so Git can still track directory structure
 !*/
 

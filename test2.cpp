@@ -10,7 +10,7 @@
 #include <cassert>
 
 // --- Utilities ---
-
+using vec_ch = std::vector<char>
 std::vector<char> read_file(const std::string& path)
 {
   std::ifstream in(path, std::ios::binary | std::ios::ate);
@@ -26,12 +26,12 @@ std::vector<char> read_file(const std::string& path)
   return data;
 }
 
-std::vector<char> gzip_decompress(FILE *source, FILE *dest)
+int gzip_decompress(FILE *source, FILE *dest)
 {
     int ret, flush;
     unsigned have;
     z_stream strm;
-    CHUNK = 256*1024
+    int CHUNK = 256*1024
     unsigned char in[256*1024];
     unsigned char out[256*1024];
 
@@ -85,7 +85,7 @@ std::vector<char> gzip_decompress(FILE *source, FILE *dest)
 // Validate buffers and print first mismatch
 bool validate_buffers(const vec_ch& original, const vec_ch& decompressed)
 {
-  bool test = true
+  bool test = true;
   if (original.size() != decompressed.size())
   {
     std::cout << "Size mismatch: original " << original.size()
@@ -160,7 +160,7 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
             test= false;
         }
     }
-
+    std::cout << start << "Start Time" << end << "EndTime";
     return test;
 }
 
