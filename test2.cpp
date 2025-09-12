@@ -164,7 +164,9 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
             test= false;
         }
     }
-    std::cout << start << "Start Time" << end << "EndTime";
+    
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Duration: " << duration.count() << " ms\n";
     return test;
 }
 
