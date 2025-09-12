@@ -41,7 +41,7 @@ class ParallelOstreamModifier : public std::ostream
     ParallelOstreamModifier& operator=(const ParallelOstreamModifier&) = delete;
 
     // not sure if necessary or default c++ can handle that
-    ~ParallelOstreamModifier() override {} = default;
+    ~ParallelOstreamModifier() override = default;
     
     void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod) 
     {

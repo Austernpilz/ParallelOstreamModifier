@@ -16,7 +16,7 @@ class ParallelStreambufModifier : public std::streambuf
     ParallelStreambufModifier(std::ostream &os, int &threads)
       : ostream_(os), modifier_(threads)
     {
-      buffer_.resize(10 * 1024 * 1024)
+      buffer_.resize(10 * 1024 * 1024);
       setp(buffer_.data(), buffer_.data() + buffer_.size());
       if (threads < 3) { continues_write_ = false; }
     }
@@ -60,7 +60,7 @@ class ParallelStreambufModifier : public std::streambuf
     void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod);
     void set_ostream(std::ostream& os);
     void set_threads(int threads);
-    void set_continues_write(bool c) {};
+    void set_continues_write(bool c);
     
   protected:
     int sync() override;
@@ -68,7 +68,7 @@ class ParallelStreambufModifier : public std::streambuf
     int_type overflow(int_type ch) override;
     
   private:
-    bool flush_buffer(){};
+    bool flush_buffer();
 
     ParallelDataModifier modifier_;
     std::vector<char> buffer_;
