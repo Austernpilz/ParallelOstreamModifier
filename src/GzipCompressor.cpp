@@ -1,6 +1,6 @@
 #include "GzipCompressor.h"
 
-std::vector<char> operator()(std::vector<char> &input) 
+std::vector<char> GzipCompressor::operator()(std::vector<char> &input) 
 {
   std::vector<char> compressed_output;
   std::vector<char> zbuffer(compression_chunk_size_);
