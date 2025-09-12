@@ -28,6 +28,11 @@ void ParallelStreambufModifier::set_ostream(std::ostream& os)
   modifier_.flush_to(os, continues_write_);
 }
 
+std::ostream get_ostream() const
+{
+  return ostream_
+}
+
 void ParallelStreambufModifier::set_buffer_size(const std::size_t &buffer_size)
 {
   sync();

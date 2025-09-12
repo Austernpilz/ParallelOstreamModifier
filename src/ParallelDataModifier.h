@@ -29,19 +29,24 @@ class ParallelDataModifier
     using vec_ch = std::vector<char>;
     // using mod_fn_ = std::function<bytes_(const bytes_&)>;
     
-    ParallelDataModifier(std::ostream &os, int threads = 1) 
+    ParallelDataModifier(int threads = 1) 
       : threads_(std::max(1, threads)),
         os_(os)
     {
-      current_id = 0;
-      next_id = 1;
+      current_id_ = 0;
+      next_id_ = 1;
     }
 
     ~ParallelDataModifier()
     {
       finish_up();
     };
-
+    std::function<std::vector<char>()> get_mod_function() const
+    {
+      return compute_fn_;
+    }
+    void set_threads(int threads)  {threads_ = threds}
+    void get_threads(int threads) const {return threads_}
     void enqueue_task(vec_ch &&data);
 
     void flush_to(std::ostream &os);
@@ -49,6 +54,7 @@ class ParallelDataModifier
     void flush_to(std::ostream &os, bool continues_write);
 
     vec_ch flush();
+    void finish_up();
 
   private:
     void worker_thread();
@@ -59,30 +65,30 @@ class ParallelDataModifier
       ThreadTask() = default;
 
       ThreadTask(ThreadTask&& other_tt)
-        : id(other_tt.id), task(std::move(other_tt.task))
+        : id_(other_tt.id), task_(std::move(other_tt.task_))
       {}
     
       ThreadTask(uint64_t id, std::packaged_task<vec_ch()>&& task)
-        : id(id), task_(std::move(std::move(task)))
+        : id_(id), task_(std::move(std::move(task)))
       {}
       
-      std::size_t id_{0}
+      std::size_t id_{0};
       std::packaged_task<vec_ch()> task_;
     };
 
     struct ThreadFuture
     {
-      ThreadFuture() = default
+      ThreadFuture() = default;
 
       ThreadFuture(ThreadFuture&& other_tf)
-        : id(other_tf.id), task(std::move(other_tf.task))
+        : id_(other_tf.id), task_(std::move(other_tf.task_))
       {}
     
       ThreadFuture(uint64_t id, std::packaged_task<vec_ch()>&& task)
-        : id(id), task_(std::move(std::move(task)))
+        : id_(id), task_(std::move(std::move(task)))
       {}
       
-      std::size_t id_{0}
+      std::size_t id_{0};
       std::future<vec_ch> result_;
     };
     
@@ -105,8 +111,8 @@ class ParallelDataModifier
 
     std::condition_variable call_for_task_;
 
-    std::size_t current_i = 0;
-    std::size_t next_id = 1;
+    std::size_t current_id_ = 0;
+    std::size_t next_id_ = 1;
 
     std::ostream &os_;
     int threads_ = 1;

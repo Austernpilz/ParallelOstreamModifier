@@ -16,6 +16,7 @@ class ParallelStreambufModifier : public std::streambuf
     ParallelStreambufModifier(std::ostream &os, int threads)
       : ostream_(os), modifier_(threads)
     {
+      buffer_.resize(10 * 1024 * 1024)
       setp(buffer_.data(), buffer_.data() + buffer_.size());
       if (threads < 3) { continues_write_ = false; }
     }
@@ -27,9 +28,9 @@ class ParallelStreambufModifier : public std::streambuf
         buffer_(std::move(other_sb.buffer_))
     {
       setp(buffer_.data(), buffer_.data() + buffer_.size());
-      pbump(static_cast<int>(other.pptr() - other.pbase()));
+      pbump(static_cast<int>(other_sb.pptr() - other_sb.pbase()));
       // reset other
-      other.setp(nullptr, nullptr);
+      other_sb.setp(nullptr, nullptr);
     }
 
     // Move assignment
@@ -55,7 +56,7 @@ class ParallelStreambufModifier : public std::streambuf
     {
       sync();
     }
-
+    void set_continues_write(bool c) {};
   protected:
     int sync() override;
     std::streamsize xsputn(const char* s, std::streamsize count) override;
@@ -65,7 +66,7 @@ class ParallelStreambufModifier : public std::streambuf
     bool flush_buffer(){};
 
     ParallelDataModifier modifier_;
-    std::vector<char> buffer_{10 * 1024 * 1024};
+    std::vector<char> buffer_;
     std::ostream& ostream_;
     bool continues_write_ = true;
 };
