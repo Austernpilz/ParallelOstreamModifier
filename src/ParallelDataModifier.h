@@ -80,11 +80,11 @@ class ParallelDataModifier
     {
       ThreadFuture() = default;
 
-      
+      ThreadFuture(ThreadFuture&& other_tf)
         : id_(other_tf.id_), result_(std::move(other_tf.result_))
       {}
-    std::future<vec_ch>
-      ThreadFuture(uint64_t id, ThreadFuture(ThreadFuture&& other_tf)&& task)
+    
+      ThreadFuture(uint64_t id, std::future<vec_ch>&& task)
         : id_(id), result_(std::move(std::move(task)))
       {}
       
