@@ -17,24 +17,24 @@ class ParallelOstreamModifier : public std::ostream
     }
     
     // Move constructor
-    ParallelOstreamModifier(ParallelOstreamModifier&& other_os) noexcept
-      : std::ostream(std::move(other_os)), buffer_(std::move(other_os.buffer_))
-    {
-      rdbuf(&buffer_);
-    }
+    ParallelOstreamModifier(ParallelOstreamModifier&& other_os) noexcept = delete
+    //   : std::ostream(std::move(other_os)), buffer_(std::move(other_os.buffer_))
+    // {
+    //   rdbuf(&buffer_);
+    // }
 
     // Move assignment
-    ParallelOstreamModifier& operator=(ParallelOstreamModifier&& other_os) noexcept 
-    {
-      if (this != &other_os)
-      {
-        std::ostream::operator=(std::move(other_os));
-        underlying_ = other_os.underlying_;
-        buffer_ = std::move(other_os.buffer_);
-        rdbuf(&buffer_);
-      }
-      return *this;
-    }
+    ParallelOstreamModifier& operator=(ParallelOstreamModifier&& other_os) noexcept =delete
+    // {
+    //   if (this != &other_os)
+    //   {
+    //     std::ostream::operator=(std::move(other_os));
+    //     underlying_ = other_os.underlying_;
+    //     buffer_ = std::move(other_os.buffer_);
+    //     rdbuf(&buffer_);
+    //   }
+    //   return *this;
+    // }
 
     //delete Copy constructors
     ParallelOstreamModifier(const ParallelOstreamModifier&) = delete;
