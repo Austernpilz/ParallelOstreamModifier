@@ -47,30 +47,30 @@ class ParallelOstreamModifier : public std::ostream
     {
       buffer_.set_mod_function(fn_mod);
     }
-    std::function<std::vector<char>(const std::vector<char>&)> get_mod_function() const
-    {
-      return buffer_.get_mod_function();
-    }
+    // std::function<std::vector<char>(const std::vector<char>&)> get_mod_function() const
+    // {
+    //   return buffer_.get_mod_function();
+    // }
 
     void set_ostream(std::ostream &new_os)
     {
       buffer_.set_ostream(new_os);
     }
 
-  std::ostream get_ostream() const
-  {
-    return buffer_.get_ostream();
-  }
+  // std::ostream get_ostream() const
+  // {
+  //   return buffer_.get_ostream();
+  // }
 
   void set_threads(const int threads)
   {
     buffer_.set_threads(threads);
   }
 
-  int get_threads() const
-  {
-    return buffer_.get_threads();
-  }
+  // int get_threads() const
+  // {
+  //   return buffer_.get_threads();
+  // }
   void set_continues_write(const bool write)
   {
     buffer_.set_continues_write(write);
@@ -80,10 +80,10 @@ class ParallelOstreamModifier : public std::ostream
   {
     buffer_.set_buffer_size(buffer_size);
   }
-  std::size_t get_buffer_size() const
-  {
-    return buffer_.get_buffer_size();
-  }
+  // std::size_t get_buffer_size() const
+  // {
+  //   return buffer_.get_buffer_size();
+  // }
     
   ParallelOstreamModifier& operator<<(const std::vector<char>& data)
   {

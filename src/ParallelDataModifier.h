@@ -41,12 +41,12 @@ class ParallelDataModifier
     {
       finish_up();
     };
-    std::function<std::vector<char>()> get_mod_function() const
-    {
-      return compute_fn_;
-    }
+    // std::function<std::vector<char>()> get_mod_function() const
+    // {
+    //   return compute_fn_;
+    // }
     void set_threads(int threads)  {threads_ = threds}
-    void get_threads(int threads) const {return threads_}
+    // void get_threads(int threads) const {return threads_}
     void enqueue_task(vec_ch &&data);
 
     void flush_to(std::ostream &os);

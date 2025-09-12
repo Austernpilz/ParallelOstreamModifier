@@ -4,10 +4,10 @@
 {
   using vec_ch = std::vector<char>;
   
-  bool ParallelDataModifier::get_unbalanced()
-  {
-    return unbalanced_;
-  }
+  // bool ParallelDataModifier::get_unbalanced()
+  // {
+  //   return unbalanced_;
+  // }
 
   void ParallelDataModifier::set_threads(const int threads)
   {

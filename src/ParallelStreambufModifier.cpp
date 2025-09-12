@@ -11,15 +11,15 @@ void ParallelStreambufModifier::set_mod_function(std::function<std::vector<char>
   modifier_.set_mod_function(fn_mod);
 }
 
-std::function<std::vector<char>(const std::vector<char>&)> ParallelStreambufModifier::get_mod_function() const
-{
-  return modifier_.get_mod_function();
-}
+// std::function<std::vector<char>(const std::vector<char>&)> ParallelStreambufModifier::get_mod_function() const
+// {
+//   return modifier_.get_mod_function();
+// }
 
-std::ostream ParallelStreambufModifier::get_ostream()
-{
-  return ostream_;
-}
+// std::ostream ParallelStreambufModifier::get_ostream()
+// {
+//   return ostream_;
+// }
 
 void ParallelStreambufModifier::set_ostream(std::ostream& os)
 {
@@ -28,10 +28,10 @@ void ParallelStreambufModifier::set_ostream(std::ostream& os)
   modifier_.flush_to(os, continues_write_);
 }
 
-std::ostream get_ostream() const
-{
-  return ostream_
-}
+// std::ostream get_ostream() const
+// {
+//   return ostream_
+// }
 
 void ParallelStreambufModifier::set_buffer_size(const std::size_t &buffer_size)
 {
@@ -40,36 +40,36 @@ void ParallelStreambufModifier::set_buffer_size(const std::size_t &buffer_size)
   setp(buffer_.data(), buffer_.data() + buffer_.size());
 }
 
-void ParallelStreambufModifier::set_continues_write(bool continues_write)
-{
-  sync();
-  continues_write_ = continues_write;
+// void ParallelStreambufModifier::set_continues_write(bool continues_write)
+// {
+//   sync();
+//   continues_write_ = continues_write;
 
-  //only start continues writing, when you have more than 3 threads
-  if (continues_write_ && ( modifier_.get_threads() > 3) )
-  {
-    modifier_.flush_to(ostream_, continues_write_);
-  }
-  else
-  {
-    continues_write_ = false;
-  }
-}
+//   //only start continues writing, when you have more than 3 threads
+//   if (continues_write_ && ( modifier_.get_threads() > 3) )
+//   {
+//     modifier_.flush_to(ostream_, continues_write_);
+//   }
+//   else
+//   {
+//     continues_write_ = false;
+//   }
+// }
 
-bool ParallelStreambufModifier::get_continues_write() const
-{
-  return continues_write_;
-}
+// bool ParallelStreambufModifier::get_continues_write() const
+// {
+//   return continues_write_;
+// }
 
 void ParallelStreambufModifier::set_threads(const int threads)
 {
   modifier_.set_threads(threads);
 }
 
-void ParallelStreambufModifier::get_threads() const
-{
-  modifier_.get_threads();
-}
+// void ParallelStreambufModifier::get_threads() const
+// {
+//   modifier_.get_threads();
+// }
 
 int_type ParallelStreambufModifier::overflow(int_type ch) override
 {
@@ -127,10 +127,10 @@ void ParallelStreambufModifier::flush_buffer()
   {
     modifier_.flush_to(ostream_);
   }
-  else if (modifier_.get_unbalanced())
-  {
-    modifier_.flush_to(ostream_, continues_write_);
-  }
+  // else if (modifier_.get_unbalanced())
+  // {
+  //   modifier_.flush_to(ostream_, continues_write_);
+  // }
 
   std::ptrdiff_t size = pptr() - pbase();
   if (size <= 0) { return; }
