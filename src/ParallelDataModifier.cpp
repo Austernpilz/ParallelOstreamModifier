@@ -24,7 +24,7 @@
     threads_ = threads;
   }
 
-  void ParallelDataModifier::set_mod_function(std::function<vec_ch(const vec_ch&&)> mod_fn)
+  void ParallelDataModifier::set_mod_function(std::function<vec_ch(vec_ch&&)> mod_fn)
   { 
     finish_up();
     compute_fn_ = mod_fn; 

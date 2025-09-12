@@ -5,7 +5,7 @@
 
 #include "ParallelOstreamModifier.h"
 
-void ParallelStreambufModifier::set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod) 
+void ParallelStreambufModifier::set_mod_function(std::function<std::vector<char>(std::vector<char>&)> fn_mod) 
 {
   sync();
   modifier_.set_mod_function(fn_mod);
