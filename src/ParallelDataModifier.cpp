@@ -193,7 +193,7 @@ void ParallelDataModifier::start_writer(std::ostream &os)
   if (workers_.size() + writers_.size() >= threads_) { stop_worker(); }
   {
     std::unique_lock<std::mutex> startstop(worker_mutex_);
-    writers.emplace_back(
+    writers_.emplace_back(
       Worker{
       true, std::thread(&ParallelDataModifier::writer_thread, this, os, static_cast<int>(writers_.size()))
     });
@@ -219,9 +219,9 @@ void ParallelDataModifier::worker_thread(int id)
   Worker& w = workers_[id];
   while (w.running)
   {
+    ThreadTask work_task;
     {
       std::unique_lock<std::mutex> task_lock(task_deque_mutex_);
-      ThreadTask work_task;
       call_for_task_.wait(task_lock, 
         [this]
         {
