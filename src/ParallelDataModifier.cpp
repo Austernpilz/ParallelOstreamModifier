@@ -27,7 +27,7 @@ void ParallelDataModifier::set_threads(int threads)
 void ParallelDataModifier::set_mod_function(std::function<vec_ch(vec_ch&)> mod_fn)
 { 
   finish_up();
-  compute_fn_ = mod_fn; 
+  compute_fn_ = mod_fn(); 
 
   while(workers_.size() < threads_)
   {
@@ -195,7 +195,7 @@ void ParallelDataModifier::start_writer(std::ostream &os)
     std::unique_lock<std::mutex> startstop(worker_mutex_);
     writers_.emplace_back(
       Worker{
-      true, std::thread(&ParallelDataModifier::writer_thread, this, os, static_cast<int>(writers_.size()))
+      true, std::thread(&ParallelDataModifier::writer_thread, this, std::ref(os), static_cast<int>(writers_.size()))
     });
   } 
 }
