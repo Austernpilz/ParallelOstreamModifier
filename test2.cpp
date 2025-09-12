@@ -17,6 +17,7 @@
 
 std::vector<char> read_file(const std::string& path)
 {
+  std::cout << "read_file" << '\n';
   std::ifstream in(path, std::ios::binary | std::ios::ate);
   if (!in) throw std::runtime_error("Cannot open file: " + path);
 
@@ -32,6 +33,7 @@ std::vector<char> read_file(const std::string& path)
 
 int gzip_decompress(FILE *source, FILE *dest)
 {
+  std::cout << "decompress" << '\n';
     int ret, flush;
     unsigned have;
     z_stream strm;
@@ -92,6 +94,7 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
                                             int threads = 4,
                                             std::size_t buffer_size = 1024*1024)
 {
+  std::cout << "testing" << '\n';
     auto original = read_file(input_path);
     bool test = true;
     // Output file stream
@@ -154,9 +157,12 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
 
 // --- Main ---
 int main(int argc, char* argv[]) {
+    std::cout << "main" << '\n';
 
     std::string input_path = argv[1];
     std::string compressed_path = "test.MzML.gzip";
+  std::cout << input_path << '\n';
+  std::cout << compressed_path << '\n';
 
     bool ok = compress_file_through_parallel_ostream(input_path, compressed_path, 40, 1*1024*1024);
 
