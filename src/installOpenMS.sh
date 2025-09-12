@@ -21,27 +21,27 @@ OpenMS_src=$dev/OpenMS
 OpenMS_build=$dev/OpenMS-build
 
 
-# ======== 1. clone openms ========
+# clone OpenMS
 git clone https://github.com/OpenMS/OpenMS.git $OpenMS_src
 cd $OpenMS_src
 git submodule update --init contrib
 
-# ======== 2. build openms contrib ========
-rm -rf $contrib_build
+# builupdate and build contrib
+# rm -rf $contrib_build
 mkdir -p $contrib_build
 cd $contrib_build
 
-# build all contrib libraries using all cores
 cmake $contrib_src -dbuild_type=all -dnumber_of_jobs=$(nproc)
 cmake --build . --parallel
 cmake --install .
 
+# get qt and install
 cd $dev
 wget https://download.qt.io/official_releases/qt/6.9/6.9.2/single/qt-everywhere-src-6.9.2.tar.xz
 tar xf qt-everywhere-src-6.9.2.tar.xz
 cd qt-everywhere-src-6.9.2
 
-rm -rf qt*
+# rm -rf qt*
 mkdir -p $qt_build
 cd $qt_build
 
@@ -55,8 +55,8 @@ cmake $qt_src \
 cmake --build . --parallel
 cmake --install .
 
-# ======== 4. build openms with asan and qt gui ========
-rm -rf $OpenMS_build $OpenMS_build
+# finally build OpenMS
+# rm -rf $OpenMS_build
 mkdir -p $OpenMS_build
 cd $OpenMS_build
 
