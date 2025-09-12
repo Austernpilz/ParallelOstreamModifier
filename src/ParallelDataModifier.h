@@ -45,7 +45,9 @@ class ParallelDataModifier
     // {
     //   return compute_fn_;
     // }
-    void set_threads(int threads)  {threads_ = threds}
+    void set_threads(const int threads);
+    void set_mod_function(std::function<vec_ch(const vec_ch&&)> mod_fn);
+    void set_threads(int threads)  {threads_ = threds;}
     // void get_threads(int threads) const {return threads_}
     void enqueue_task(vec_ch &&data);
 

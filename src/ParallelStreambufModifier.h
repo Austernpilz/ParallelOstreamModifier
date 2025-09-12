@@ -56,6 +56,10 @@ class ParallelStreambufModifier : public std::streambuf
     {
       sync();
     }
+
+    void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod);
+    void set_ostream(std::ostream& os);
+    void set_threads(const int threads);
     void set_continues_write(bool c) {};
     
   protected:
