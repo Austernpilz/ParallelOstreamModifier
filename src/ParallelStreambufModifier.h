@@ -22,32 +22,32 @@ class ParallelStreambufModifier : public std::streambuf
     }
 
     // Move constructor
-    ParallelStreambufModifier(ParallelStreambufModifier&& other_sb) noexcept
-      : ostream_(other_sb.ostream_),
-        modifier_(std::move(other_sb.modifier_)),
-        buffer_(std::move(other_sb.buffer_))
-    {
-      setp(buffer_.data(), buffer_.data() + buffer_.size());
-      pbump(static_cast<int>(other_sb.pptr() - other_sb.pbase()));
-      // reset other
-      other_sb.setp(nullptr, nullptr);
-    }
+    ParallelStreambufModifier(ParallelStreambufModifier&& other_sb) noexcept = delete
+    //   : ostream_(other_sb.ostream_),
+    //     modifier_(std::move(other_sb.modifier_)),
+    //     buffer_(std::move(other_sb.buffer_))
+    // {
+    //   setp(buffer_.data(), buffer_.data() + buffer_.size());
+    //   pbump(static_cast<int>(other_sb.pptr() - other_sb.pbase()));
+    //   // reset other
+    //   other_sb.setp(nullptr, nullptr);
+    // }
 
     // Move assignment
-    ParallelStreambufModifier& operator=(ParallelStreambufModifier&& other_sb) noexcept
-    {
-      if (this != &other_sb)
-      {
-        sync();
-        ostream_ = other_sb.ostream_;
-        modifier_ = std::move(other_sb.modifier_);
-        buffer_ = std::move(other_sb.buffer_);
-        setp(buffer_.data(), buffer_.data() + buffer_.size());
-        pbump(static_cast<int>(other_sb.pptr() - other_sb.pbase()));
-        other_sb.setp(nullptr, nullptr);
-      }
-      return *this;
-    }
+    ParallelStreambufModifier& operator=(ParallelStreambufModifier&& other_sb) noexcept = delete
+    // {
+    //   // if (this != &other_sb)
+    //   // {
+    //   //   sync();
+    //   //   ostream_ = other_sb.ostream_;
+    //   //   modifier_ = std::move(other_sb.modifier_);
+    //   //   buffer_ = std::move(other_sb.buffer_);
+    //   //   setp(buffer_.data(), buffer_.data() + buffer_.size());
+    //   //   pbump(static_cast<int>(other_sb.pptr() - other_sb.pbase()));
+    //   //   other_sb.setp(nullptr, nullptr);
+    //   // }
+    //   // return *this;
+    // }
 
     ParallelStreambufModifier(const ParallelStreambufModifier&) = delete;
     ParallelStreambufModifier& operator=(const ParallelStreambufModifier&) = delete;
@@ -56,7 +56,7 @@ class ParallelStreambufModifier : public std::streambuf
     {
       sync();
     }
-
+    void set_buffer_size(std::size_t s);
     void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod);
     void set_ostream(std::ostream& os);
     void set_threads(const int threads);

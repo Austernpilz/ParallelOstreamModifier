@@ -9,8 +9,8 @@
 class ParallelOstreamModifier : public std::ostream
 {
   public:
-    ParallelOstreamModifier(std::ostream &os, const int threads = 1)
-      : std::ostream(buffer_), (os), buffer_(threads)
+    ParallelOstreamModifier(std::ostream &os, int threads = 1)
+      : underlying_(os) std::ostream(buffer_), buffer_(threads)
     {
       buffer_.set_ostream(os);
       rdbuf(&buffer_);
@@ -28,9 +28,9 @@ class ParallelOstreamModifier : public std::ostream
     {
       if (this != &other_os)
       {
-        std::ostream::operator=(std::move(other));
-        underlying_ = other.underlying_;
-        buffer_ = std::move(other.buffer_);
+        std::ostream::operator=(std::move(other_os));
+        underlying_ = other_os.underlying_;
+        buffer_ = std::move(other_os.buffer_);
         rdbuf(&buffer_);
       }
       return *this;
