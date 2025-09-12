@@ -80,7 +80,7 @@ void ParallelDataModifier::enqueue_task(vec_ch&& data)
       tasks_.push_back(std::move(t));
       call_for_task_.notify_one();
     }
-    task_size = task_.size();
+    task_size = tasks_.size();
   }
 
   {
@@ -113,10 +113,11 @@ void ParallelDataModifier::flush_to(std::ostream &os, bool continues_write)
 void ParallelDataModifier::flush_to(std::ostream &os)
 {
   std::deque<ThreadFuture> local_results;
+  std::size_t next_id_
   {
     std::unique_lock<std::mutex> result_lock(result_deque_mutex_);
     local_results.swap(results_);
-    std::size_t next_id_ = current_id_ - local_results.size()
+    next_id_ = current_id_ - local_results.size();
   }
 
   while(!local_results.empty())
@@ -136,13 +137,15 @@ void ParallelDataModifier::flush_to(std::ostream &os)
 vec_ch ParallelDataModifier::flush()
 {
   std::deque<ThreadFuture> local_results;
+  vec_ch output;
+  std::size_t next_id_;
   {
     std::unique_lock<std::mutex> result_lock(result_deque_mutex_);
     local_results.swap(results_);
-    std::size_t next_id_ = current_id_ - local_results.size()
+    next_id_ = current_id_ - local_results.size();
   }
 
-  vec_ch output.resize(local_results.size());
+  output.resize(local_results.size());
 
   while(!local_results.empty())
   {
@@ -174,7 +177,7 @@ void ParallelDataModifier::start_worker()
 void ParallelDataModifier::stop_worker()
 {
   {
-    std::unique_lock<std::mutex> startstop(worker_mutex_)
+    std::unique_lock<std::mutex> startstop(worker_mutex_);
     if (workers_.size() < 0) { return; }
     int i = static_cast<int>(workers_.size()) -1;
     if (i < 1) { return; }
@@ -206,7 +209,7 @@ void ParallelDataModifier::stop_writer()
     if (i < 1) { return; }
     writers_[i].running = false;
     startstop.unlock();
-    if (w.thread.joinable()) { w.thread.join(); };
+    if (writers_[i].thread.joinable()) { writers_[i].thread.join(); };
     writers_.erase(writers_.begin() + i);
   }
 } 
@@ -229,7 +232,7 @@ void ParallelDataModifier::worker_thread(int id)
       if (tasks_.empty()) { continue; }
       else
       {
-        work_task = std::move(tasks_.front());
+        ThreadTask work_task = std::move(tasks_.front());
         tasks_.pop_front();
       }
     }
@@ -261,7 +264,7 @@ void ParallelDataModifier::writer_thread(std::ostream &os, int id)
       if (!results_.empty()) 
       {
         ThreadFuture& found = results_.front();
-        if (r.id_ == next_id_)
+        if (found.id_ == next_id_)
         {
           vec_ch result = found.result_.get();
           os.write(result.data(), static_cast<std::streamsize>(result.size()));
