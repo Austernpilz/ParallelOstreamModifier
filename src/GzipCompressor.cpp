@@ -31,7 +31,7 @@ std::vector<char> GzipCompressor::operator()(std::vector<char> &input)
     std::size_t have = zbuffer.size() - strm.avail_out;
     compressed_output.insert(compressed_output.end(),
                               zbuffer.data(), zbuffer.data() + have);
-  } while (ret != Z_STREAM_EN);
+  } while (ret != Z_STREAM_END);
 
   deflateEnd(&strm);
   return compressed_output;

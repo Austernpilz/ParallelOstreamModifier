@@ -55,10 +55,13 @@ class ParallelDataModifier
 
     vec_ch flush();
     void finish_up();
-
+    void start_worker();
+    void start_writer();
+    void stop_worker();
+    void stop_writer();
   private:
-    void worker_thread();
-    void writer_thread();
+    void worker_thread(int id);
+    void writer_thread(std::ostream &os, int id);
 
     struct ThreadTask
     {
@@ -107,7 +110,7 @@ class ParallelDataModifier
 
     std::mutex task_deque_mutex_;
     std::mutex result_deque_mutex_;
-    std::mutex Worker_mutex_;
+    std::mutex worker_mutex_;
 
     std::condition_variable call_for_task_;
 
