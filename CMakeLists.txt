@@ -14,10 +14,10 @@ find_package(ZLIB)
 
 set(SOURCES
     test2.cpp
-    src/IO_Basic/ParallelOstreamModifier.h
-    src/IO_Basic/ParallelStreambufModifier.cpp
-    src/modifier/GzipCompressor.cpp
-    src/modifier/ParallelDataModifier.cpp
+    src/ParallelOstreamModifier.h
+    src/ParallelStreambufModifier.cpp
+    src/GzipCompressor.cpp
+    src/ParallelDataModifier.cpp
 )
 
 # Setup executable

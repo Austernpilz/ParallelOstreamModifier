@@ -129,53 +129,53 @@ main/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/build
 .PHONY : main/fast
 
-src/modifier/GzipCompressor.o: src/modifier/GzipCompressor.cpp.o
-.PHONY : src/modifier/GzipCompressor.o
+src/GzipCompressor.o: src/GzipCompressor.cpp.o
+.PHONY : src/GzipCompressor.o
 
 # target to build an object file
-src/modifier/GzipCompressor.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/modifier/GzipCompressor.cpp.o
-.PHONY : src/modifier/GzipCompressor.cpp.o
+src/GzipCompressor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/GzipCompressor.cpp.o
+.PHONY : src/GzipCompressor.cpp.o
 
-src/modifier/GzipCompressor.i: src/modifier/GzipCompressor.cpp.i
-.PHONY : src/modifier/GzipCompressor.i
+src/GzipCompressor.i: src/GzipCompressor.cpp.i
+.PHONY : src/GzipCompressor.i
 
 # target to preprocess a source file
-src/modifier/GzipCompressor.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/modifier/GzipCompressor.cpp.i
-.PHONY : src/modifier/GzipCompressor.cpp.i
+src/GzipCompressor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/GzipCompressor.cpp.i
+.PHONY : src/GzipCompressor.cpp.i
 
-src/modifier/GzipCompressor.s: src/modifier/GzipCompressor.cpp.s
-.PHONY : src/modifier/GzipCompressor.s
+src/GzipCompressor.s: src/GzipCompressor.cpp.s
+.PHONY : src/GzipCompressor.s
 
 # target to generate assembly for a file
-src/modifier/GzipCompressor.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/modifier/GzipCompressor.cpp.s
-.PHONY : src/modifier/GzipCompressor.cpp.s
+src/GzipCompressor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/GzipCompressor.cpp.s
+.PHONY : src/GzipCompressor.cpp.s
 
-src/modifier/ParallelDataModifier.o: src/modifier/ParallelDataModifier.cpp.o
-.PHONY : src/modifier/ParallelDataModifier.o
+src/ParallelDataModifier.o: src/ParallelDataModifier.cpp.o
+.PHONY : src/ParallelDataModifier.o
 
 # target to build an object file
-src/modifier/ParallelDataModifier.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/modifier/ParallelDataModifier.cpp.o
-.PHONY : src/modifier/ParallelDataModifier.cpp.o
+src/ParallelDataModifier.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/ParallelDataModifier.cpp.o
+.PHONY : src/ParallelDataModifier.cpp.o
 
-src/modifier/ParallelDataModifier.i: src/modifier/ParallelDataModifier.cpp.i
-.PHONY : src/modifier/ParallelDataModifier.i
+src/ParallelDataModifier.i: src/ParallelDataModifier.cpp.i
+.PHONY : src/ParallelDataModifier.i
 
 # target to preprocess a source file
-src/modifier/ParallelDataModifier.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/modifier/ParallelDataModifier.cpp.i
-.PHONY : src/modifier/ParallelDataModifier.cpp.i
+src/ParallelDataModifier.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/ParallelDataModifier.cpp.i
+.PHONY : src/ParallelDataModifier.cpp.i
 
-src/modifier/ParallelDataModifier.s: src/modifier/ParallelDataModifier.cpp.s
-.PHONY : src/modifier/ParallelDataModifier.s
+src/ParallelDataModifier.s: src/ParallelDataModifier.cpp.s
+.PHONY : src/ParallelDataModifier.s
 
 # target to generate assembly for a file
-src/modifier/ParallelDataModifier.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/modifier/ParallelDataModifier.cpp.s
-.PHONY : src/modifier/ParallelDataModifier.cpp.s
+src/ParallelDataModifier.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/ParallelDataModifier.cpp.s
+.PHONY : src/ParallelDataModifier.cpp.s
 
 test2.o: test2.cpp.o
 .PHONY : test2.o
@@ -210,12 +210,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... main"
-	@echo "... src/modifier/GzipCompressor.o"
-	@echo "... src/modifier/GzipCompressor.i"
-	@echo "... src/modifier/GzipCompressor.s"
-	@echo "... src/modifier/ParallelDataModifier.o"
-	@echo "... src/modifier/ParallelDataModifier.i"
-	@echo "... src/modifier/ParallelDataModifier.s"
+	@echo "... src/GzipCompressor.o"
+	@echo "... src/GzipCompressor.i"
+	@echo "... src/GzipCompressor.s"
+	@echo "... src/ParallelDataModifier.o"
+	@echo "... src/ParallelDataModifier.i"
+	@echo "... src/ParallelDataModifier.s"
 	@echo "... test2.o"
 	@echo "... test2.i"
 	@echo "... test2.s"
