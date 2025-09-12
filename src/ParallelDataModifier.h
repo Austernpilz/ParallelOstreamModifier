@@ -30,8 +30,7 @@ class ParallelDataModifier
     // using mod_fn_ = std::function<bytes_(const bytes_&)>;
     
     ParallelDataModifier(int threads = 1) 
-      : threads_(std::max(1, threads)),
-        os_(os)
+      : threads_(std::max(1, threads))
     {
       current_id_ = 0;
       next_id_ = 1;
@@ -45,9 +44,8 @@ class ParallelDataModifier
     // {
     //   return compute_fn_;
     // }
-    void set_threads(const int threads);
+    void set_threads(int threads);
     void set_mod_function(std::function<vec_ch(const vec_ch&&)> mod_fn);
-    void set_threads(int threads)  {threads_ = threads;}
     // void get_threads(int threads) const {return threads_}
     void enqueue_task(vec_ch &&data);
 
@@ -83,11 +81,11 @@ class ParallelDataModifier
       ThreadFuture() = default;
 
       ThreadFuture(ThreadFuture&& other_tf)
-        : id_(other_tf.id_), task_(std::move(other_tf.task_))
+        : id_(other_tf.id_), result_(std::move(other_tf.result_))
       {}
     
       ThreadFuture(uint64_t id, std::packaged_task<vec_ch()>&& task)
-        : id_(id), task_(std::move(std::move(task)))
+        : id_(id), result_(std::move(std::move(task)))
       {}
       
       std::size_t id_{0};
@@ -116,7 +114,6 @@ class ParallelDataModifier
     std::size_t current_id_ = 0;
     std::size_t next_id_ = 1;
 
-    std::ostream &os_;
     int threads_ = 1;
     bool stop_ = false;
     bool unbalanced_ = false;

@@ -125,7 +125,7 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
     FILE* dst = fopen("test.MzML", "wb");
     if (!dst) throw std::runtime_error("Cannot open test.MzML");
 
-    int ret = gzip_decompress(src, dst)
+    int ret = gzip_decompress(src, dst);
     fclose(src);
     fclose(dst);
     std::vector<char> still_original = read_file("test.MzML");

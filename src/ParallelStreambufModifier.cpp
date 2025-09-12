@@ -61,7 +61,7 @@ void ParallelStreambufModifier::set_buffer_size(const std::size_t &buffer_size)
 //   return continues_write_;
 // }
 
-void ParallelStreambufModifier::set_threads(const int threads)
+void ParallelStreambufModifier::set_threads(int threads)
 {
   modifier_.set_threads(threads);
 }

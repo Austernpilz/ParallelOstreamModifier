@@ -9,7 +9,7 @@
   //   return unbalanced_;
   // }
 
-  void ParallelDataModifier::set_threads(const int threads)
+  void ParallelDataModifier::set_threads(int threads)
   {
     while(workers_.size() > threads)
     {
@@ -262,7 +262,7 @@
           if (r.id_ == next_id_)
           {
             vec_ch result = found.future_.get();
-            os_.write(result.data(), static_cast<std::streamsize>(result.size()));
+            os.write(result.data(), static_cast<std::streamsize>(result.size()));
             ++next_id;
             results_.pop_front();
           }
@@ -278,7 +278,7 @@
             {
               ThreadFuture& found = *it;
               vec_ch result = found.future_.get();
-              os_.write(result.data(), static_cast<std::streamsize>(result.size()));
+              os.write(result.data(), static_cast<std::streamsize>(result.size()));
               ++next_id;
             }
           }
