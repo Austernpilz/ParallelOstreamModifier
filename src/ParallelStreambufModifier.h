@@ -56,6 +56,7 @@ class ParallelStreambufModifier : public std::streambuf
     {
       sync();
     }
+
     void set_buffer_size(std::size_t s);
     void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod);
     void set_ostream(std::ostream& os);
@@ -68,7 +69,7 @@ class ParallelStreambufModifier : public std::streambuf
     int_type overflow(int_type ch) override;
     
   private:
-    bool flush_buffer();
+    void flush_buffer();
 
     ParallelDataModifier modifier_;
     std::vector<char> buffer_;

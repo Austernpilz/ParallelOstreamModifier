@@ -71,7 +71,7 @@ void ParallelStreambufModifier::set_threads(int threads)
 //   modifier_.get_threads();
 // }
 
-int_type ParallelStreambufModifier::overflow(int_type ch) override
+std::streambuf::int_type ParallelStreambufModifier::overflow(int_type ch)
 {
   if (ch != traits_type::eof()) 
   {
@@ -89,7 +89,7 @@ int_type ParallelStreambufModifier::overflow(int_type ch) override
   return ch;
 }
 
-int ParallelStreambufModifier::sync() override
+int ParallelStreambufModifier::sync()
 {
   flush_buffer();
   modifier_.finish_up();
@@ -97,7 +97,7 @@ int ParallelStreambufModifier::sync() override
   return 0;
 }
 
-std::streamsize ParallelStreambufModifier::xsputn(const char* s, std::streamsize s_size) override
+std::streamsize ParallelStreambufModifier::xsputn(const char* s, std::streamsize s_size)
 {
   std::streamsize available_sapce = epptr() - pptr();
   if (s_size <= available_sapce) 
@@ -110,7 +110,7 @@ std::streamsize ParallelStreambufModifier::xsputn(const char* s, std::streamsize
     flush_buffer();
     if (s_size > buffer_.size()) 
     {
-      enqueue_task(std::vector<char>(s, s + s_size));
+      modifier_.(std::vector<char>(s, s + s_size));
     }
     else
     {
