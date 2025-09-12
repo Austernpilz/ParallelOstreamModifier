@@ -43,7 +43,7 @@ class ParallelOstreamModifier : public std::ostream
     // not sure if necessary or default c++ can handle that
     ~ParallelOstreamModifier() override = default;
     
-    void set_mod_function(std::function<std::vector<char>(std::vector<char>&)> fn_mod) 
+    void set_mod_function(std::function<std::vector<char>(const std::vector<char>&&)> fn_mod) 
     {
       buffer_.set_mod_function(fn_mod);
     }

@@ -58,7 +58,7 @@ class ParallelStreambufModifier : public std::streambuf
     }
 
     void set_buffer_size(std::size_t buffer_size);
-    void set_mod_function(std::function<std::vector<char>(std::vector<char>&)> fn_mod);
+    void set_mod_function(std::function<std::vector<char>(const std::vector<char>&&)> fn_mod);
     // void set_ostream(std::ostream& os);
     void set_threads(int threads);
     void set_continues_write(bool c);

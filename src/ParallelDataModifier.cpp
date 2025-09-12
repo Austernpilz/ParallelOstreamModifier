@@ -23,7 +23,7 @@ void ParallelDataModifier::set_threads(int threads)
   threads_ = threads;
 }
 
-void ParallelDataModifier::set_mod_function(std::function<vec_ch(vec_ch&)> mod_fn)
+void ParallelDataModifier::set_mod_function(const std::function<vec_ch(vec_ch&&)> mod_fn)
 { 
   finish_up();
   compute_fn_ = mod_fn; 
@@ -57,7 +57,7 @@ void ParallelDataModifier::enqueue_task(vec_ch&& data)
 
     //lambda expression for my task
     std::packaged_task<vec_ch()> var_task(
-      [&]() mutable
+      [&]()
       {
         return compute_fn_(std::move(chunk));
       });
