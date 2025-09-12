@@ -20,14 +20,13 @@ void ParallelDataModifier::set_threads(int threads)
   {
     start_worker();
   }
-  
   threads_ = threads;
 }
 
 void ParallelDataModifier::set_mod_function(std::function<vec_ch(vec_ch&)> mod_fn)
 { 
   finish_up();
-  compute_fn_ = mod_fn(); 
+  compute_fn_ = mod_fn; 
 
   while(workers_.size() < threads_)
   {
@@ -159,10 +158,8 @@ vec_ch ParallelDataModifier::flush()
       }
     }
   }
-  
-
   return output;
-};
+}
 
 void ParallelDataModifier::start_worker()
 {
