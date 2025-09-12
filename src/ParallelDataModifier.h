@@ -47,7 +47,7 @@ class ParallelDataModifier
     // }
     void set_threads(const int threads);
     void set_mod_function(std::function<vec_ch(const vec_ch&&)> mod_fn);
-    void set_threads(int threads)  {threads_ = threds;}
+    void set_threads(int threads)  {threads_ = threads;}
     // void get_threads(int threads) const {return threads_}
     void enqueue_task(vec_ch &&data);
 
@@ -67,7 +67,7 @@ class ParallelDataModifier
       ThreadTask() = default;
 
       ThreadTask(ThreadTask&& other_tt)
-        : id_(other_tt.id), task_(std::move(other_tt.task_))
+        : id_(other_tt.id_), task_(std::move(other_tt.task_))
       {}
     
       ThreadTask(uint64_t id, std::packaged_task<vec_ch()>&& task)
@@ -83,7 +83,7 @@ class ParallelDataModifier
       ThreadFuture() = default;
 
       ThreadFuture(ThreadFuture&& other_tf)
-        : id_(other_tf.id), task_(std::move(other_tf.task_))
+        : id_(other_tf.id_), task_(std::move(other_tf.task_))
       {}
     
       ThreadFuture(uint64_t id, std::packaged_task<vec_ch()>&& task)

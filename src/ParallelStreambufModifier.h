@@ -13,7 +13,7 @@
 class ParallelStreambufModifier : public std::streambuf
 {
   public:
-    ParallelStreambufModifier(std::ostream &os, int threads)
+    ParallelStreambufModifier(std::ostream &os, int &threads)
       : ostream_(os), modifier_(threads)
     {
       buffer_.resize(10 * 1024 * 1024)
@@ -22,7 +22,7 @@ class ParallelStreambufModifier : public std::streambuf
     }
 
     // Move constructor
-    ParallelStreambufModifier(ParallelStreambufModifier&& other_sb) noexcept = delete
+    ParallelStreambufModifier(ParallelStreambufModifier&& other_sb) noexcept = delete;
     //   : ostream_(other_sb.ostream_),
     //     modifier_(std::move(other_sb.modifier_)),
     //     buffer_(std::move(other_sb.buffer_))
@@ -34,7 +34,7 @@ class ParallelStreambufModifier : public std::streambuf
     // }
 
     // Move assignment
-    ParallelStreambufModifier& operator=(ParallelStreambufModifier&& other_sb) noexcept = delete
+    ParallelStreambufModifier& operator=(ParallelStreambufModifier&& other_sb) noexcept = delete;
     // {
     //   // if (this != &other_sb)
     //   // {

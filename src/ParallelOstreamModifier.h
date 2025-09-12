@@ -17,14 +17,14 @@ class ParallelOstreamModifier : public std::ostream
     }
     
     // Move constructor
-    ParallelOstreamModifier(ParallelOstreamModifier&& other_os) noexcept = delete
+    ParallelOstreamModifier(ParallelOstreamModifier&& other_os) noexcept = delete;
     //   : std::ostream(std::move(other_os)), buffer_(std::move(other_os.buffer_))
     // {
     //   rdbuf(&buffer_);
     // }
 
     // Move assignment
-    ParallelOstreamModifier& operator=(ParallelOstreamModifier&& other_os) noexcept =delete
+    ParallelOstreamModifier& operator=(ParallelOstreamModifier&& other_os) noexcept =delete;
     // {
     //   if (this != &other_os)
     //   {
