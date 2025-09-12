@@ -57,7 +57,7 @@ void ParallelDataModifier::enqueue_task(vec_ch&& data)
 
     //lambda expression for my task
     std::packaged_task<vec_ch()> var_task(
-      [chunk=std::move(chunk), this]()
+      [&]() mutable
       {
         return compute_fn_(std::move(chunk));
       });
