@@ -38,7 +38,7 @@ class ParallelOstreamModifier : public std::ostream
 
     //delete Copy constructors
     ParallelOstreamModifier(const ParallelOstreamModifier&) = delete;
-    ParallelOstreamModifier& operator=(const ParallelOstreamModifier&) = delete;
+    ParallelOstreamModifier& operator=(const ParallelOstreamModifier&) = default;
 
     // not sure if necessary or default c++ can handle that
     ~ParallelOstreamModifier() override = default;

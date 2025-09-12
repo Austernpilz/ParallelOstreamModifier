@@ -1,4 +1,4 @@
-#pragma once
+
 
 #include <cstring>  
 #include <cctype> 
@@ -110,7 +110,7 @@ std::streamsize ParallelStreambufModifier::xsputn(const char* s, std::streamsize
     flush_buffer();
     if (s_size > buffer_.size()) 
     {
-      modifier_.(std::vector<char>(s, s + s_size));
+      modifier_.enqueue_task(std::vector<char>(s, s + s_size));
     }
     else
     {
