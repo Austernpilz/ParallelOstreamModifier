@@ -9,8 +9,8 @@
 #include <zlib.h>
 #include <cassert>
 
-#include "ParallelOstreamModifier.h"  
-#include "GzipCompressor.h"
+#include "src/IO_Basic/ParallelOstreamModifier.h"  
+#include "src/modifier/GzipCompressor.h"
 
 
 // --- Utilities ---
