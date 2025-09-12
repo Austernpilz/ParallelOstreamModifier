@@ -10,8 +10,9 @@ class ParallelOstreamModifier : public std::ostream
 {
   public:
     ParallelOstreamModifier(std::ostream &os, const int threads = 1)
-      : std::ostream(nullptr), buffer_(os, threads)
+      : std::ostream(buffer_), (os), buffer_(threads)
     {
+      buffer_.set_ostream(os);
       rdbuf(&buffer_);
     }
     
@@ -27,8 +28,9 @@ class ParallelOstreamModifier : public std::ostream
     {
       if (this != &other_os)
       {
-        std::ostream::operator=(std::move(other_os));
-        buffer_ = std::move(other_os.buffer_);
+        std::ostream::operator=(std::move(other));
+        underlying_ = other.underlying_;
+        buffer_ = std::move(other.buffer_);
         rdbuf(&buffer_);
       }
       return *this;
@@ -42,18 +44,18 @@ class ParallelOstreamModifier : public std::ostream
     ~ParallelOstreamModifier() override {} = default;
     
     void set_mod_function(std::function<std::vector<char>(const std::vector<char>&)> fn_mod) 
-  {
-    buffer_.set_mod_function(fn_mod);
-  }
-  std::function<std::vector<char>(const std::vector<char>&)> get_mod_function() const
-  {
-    return buffer_.get_mod_function();
-  }
+    {
+      buffer_.set_mod_function(fn_mod);
+    }
+    std::function<std::vector<char>(const std::vector<char>&)> get_mod_function() const
+    {
+      return buffer_.get_mod_function();
+    }
 
-  void set_ostream(std::ostream &new_os)
-  {
-    buffer_.set_ostream(new_os);
-  }
+    void set_ostream(std::ostream &new_os)
+    {
+      buffer_.set_ostream(new_os);
+    }
 
   std::ostream get_ostream() const
   {
@@ -83,6 +85,19 @@ class ParallelOstreamModifier : public std::ostream
     return buffer_.get_buffer_size();
   }
     
+  ParallelOstreamModifier& operator<<(const std::vector<char>& data)
+  {
+    write(data.data(), data.size());
+    return *this;
+  }
+
+  ParallelOstreamModifier& operator<<(char c)
+  {
+    write(&c, 1);
+    return *this;
+  }
+
   private:
-      ParallelStreambufModifier buffer_;
+    std::ostream& underlying_;
+    ParallelStreambufModifier buffer_;
 };

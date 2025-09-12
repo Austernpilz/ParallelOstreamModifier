@@ -1,13 +1,13 @@
 #include <chrono>
 #include <iostream>
 #include <random>
-#include <vector>
 #include <fstream>
 #include <vector>
 #include <string>
 #include <stdexcept>
 #include <zlib.h>
 #include <cassert>
+#include <cstdio>
 
 #include "src/ParallelOstreamModifier.h"  
 #include "src/GzipCompressor.h"
@@ -120,22 +120,31 @@ bool compress_file_through_parallel_ostream(const std::string& input_path,
     compressed_file.close();
 
     // --- Validation ---
-    gzip_decompress(compressed_path, "test.MzML")
+    FILE* src = fopen(compressed_path.c_str(), "rb");
+    if (!src) throw std::runtime_error("Cannot open " + compressed_path);
+    FILE* dst = fopen("test.MzML", "wb");
+    if (!dst) throw std::runtime_error("Cannot open test.MzML");
+
+    ret = gzip_decompress(src, dst)
+    fclose(src);
+    fclose(dst);
     std::vector<char> still_original = read_file("test.MzML");
 
-    if (original.size() != still_original.size()) {
-        std::cout << "Size mismatch: original " << original.size()
-                  << ", decompressed " << decompressed.size() << "\n";
-        test = false;
+    if (original.size() != still_original.size())
+    {
+      std::cout << "Size mismatch: original " << original.size()
+                << ", decompressed " << still_original.size() << "\n";
+      test = false;
     }
 
-    for (size_t i = 0; i < original.size(); ++i) {
-        if (original[i] != still_original[i]) {
-            std::cerr << "Mismatch at byte " << i
-                      << ": original=" << int(original[i])
-                      << ", decompressed=" << int(still_original[i]) << "\n";
-            test= false;
-        }
+    for (size_t i = 0; i < original.size(); ++i) 
+    {
+      if (original[i] != still_original[i]) {
+        std::cerr << "Mismatch at byte " << i
+                  << ": original=" << int(original[i])
+                  << ", decompressed=" << int(still_original[i]) << "\n";
+        test= false;
+    }
     }
     
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
