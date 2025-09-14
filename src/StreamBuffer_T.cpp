@@ -1,7 +1,5 @@
 #include "StreamBuffer_t.h"
 
-
-
 // ThreadWorkerHive: 
 // worker_bees_ + queen_bee_writing_(writer)
 void ThreadWorkerHive::start_workers(size_t threads)
@@ -34,6 +32,10 @@ void ThreadWorkerHive::stop()
 {
   {
     std::unique_lock lock(bee_stop_);
+    bee_go_.wait(lock, [this]
+    {
+      return results_.empty();
+    });
     stopping_ = true;
     bee_go_.notify_all();
   }
@@ -50,7 +52,7 @@ void ThreadWorkerHive::worker_loop()
   {
     char* res = task_manager_->get_empty_buffer();
     size_t res_size = task_manager_->get_buffer_size();
-
+    
     res_size = func_(task.data_, task.size_, res, res_size);
     {
       std::lock_guard lock(bee_stop_);
@@ -88,31 +90,6 @@ void ThreadWorkerHive::writer_loop()
   }
   writing_sink_->pubsync();
 }
-
-
-
-
-
-
-
-// template <typename Task_function_>
-// class Streambuf_tFactory 
-// {
-//   public:
-//     using Buffer = StreamBuffer_t<Task_function_>;
-
-//     std::unique_ptr<Buffer> make(std::ostream& os, Task_function_ fn)
-//     {
-//       if (!build_internally()) {throw std::runtime_error("Config not valid");}
-//       return std::make_unique<Buffer>(
-//           &os, config_.buffer_size, config_.pool_size, config_.threads, fn
-//       );
-//     }
-
-//   private:
-//     Config config_;
-//   };
-
 
 size_t  GzipCompressor::operator()(char* in, size_t  size_in, char* out, size_t  size_out)
 {
@@ -165,6 +142,121 @@ size_t  GzipCompressor::operator()(char* in, size_t  size_in, char* out, size_t 
 
   return written_out;
 }
+
+bool StreamBuffer_t::flush_buffer()
+{
+  size_t size = get_size();
+  if (size == 0) { return true; }
+  enqueue_task(current_buffer_, size);
+  current_buffer_ = get_empty_buffer();
+  if (!current_buffer_) { return false; }
+  setp(current_buffer_, current_buffer_ + buffer_size_);
+  return true;
+}
+
+char* StreamBuffer_t::get_empty_buffer()
+{
+  std::unique_lock lock(buffer_lock_);
+  buffer_free_.wait(lock, [this]
+  {
+    return !empty_buffer_queue_.empty() || stopping_; 
+  });
+  //if (stopping_) { return nullptr; }
+
+  char* buf = empty_buffer_queue_.front();
+  empty_buffer_queue_.pop_front();
+
+  return buf;
+}
+
+void StreamBuffer_t::enqueue_task(const char* s, std::streamsize count)
+{
+  std::unique_lock<std::mutex> lock(task_lock_);
+  task_queue_.push_back(DataChunk{const_cast<char*>(s), static_cast<size_t>(count), next_id_++});
+  task_go_.notify_all();
+}
+
+void StreamBuffer_t::enqueue_task(char* buf, size_t len)
+{
+  std::unique_lock lock(task_lock_);
+  task_queue_.push_back(DataChunk{buf, len, next_id_++});
+  task_go_.notify_all();
+}
+
+void StreamBuffer_t::finish()
+{
+  flush_buffer();  
+  stop();
+  for (auto* buf : empty_buffer_queue_) { delete[] buf; }
+  empty_buffer_queue_.clear();
+}
+
+bool StreamBuffer_t::get_task(DataChunk& task)
+{
+  std::unique_lock lock(task_lock_);
+  task_go_.wait(lock, [this]
+  { 
+    return stopping_ || !task_queue_.empty(); 
+  });
+
+  if (task_queue_.empty()) { return false; }
+
+  task = task_queue_.front();
+  task_queue_.pop_front();
+  return true;
+}
+
+void StreamBuffer_t::give_back_buffer(char* buf)
+{
+  std::unique_lock lock(buffer_lock_);
+  if (empty_buffer_queue_.size() > pool_size_)
+  {
+    delete[] buf;
+    return;
+  }
+  empty_buffer_queue_.push_back(buf);
+  buffer_free_.notify_all();
+}
+
+void StreamBuffer_t::stop()
+{
+  {
+    std::unique_lock<std::mutex> lock(task_lock_);
+    stopping_ = true;
+    task_go_.notify_all();
+  }
+  HRF_hive_.stop();
+}
+
+void StreamBuffer_t::start()
+{
+  std::lock_guard lock(buffer_lock_);
+  stopping_ = false;
+  HRF_hive_.start_workers(threads_);
+  buffer_free_.notify_all();
+}
+
+
+
+
+// template <typename Task_function_>
+// class Streambuf_tFactory 
+// {
+//   public:
+//     using Buffer = StreamBuffer_t<Task_function_>;
+
+//     std::unique_ptr<Buffer> make(std::ostream& os, Task_function_ fn)
+//     {
+//       if (!build_internally()) {throw std::runtime_error("Config not valid");}
+//       return std::make_unique<Buffer>(
+//           &os, config_.buffer_size, config_.pool_size, config_.threads, fn
+//       );
+//     }
+
+//   private:
+//     Config config_;
+//   };
+
 
 // // Factory set up, that handles all input and set up
 // template <typename Task_function_>
@@ -319,88 +411,3 @@ size_t  GzipCompressor::operator()(char* in, size_t  size_in, char* out, size_t 
 //   // {
 //   //   return std::make_unique<StreamBuffer_t<Task_function_>>(os, buffer_size_, threads, pool_size, func_);
 //   // }
-
-void StreamBuffer_t::flush_buffer()
-{
-  size_t size = get_size();
-  if (size == 0) { return; }
-  enqueue_task(current_buffer_, size);
-  current_buffer_ = get_empty_buffer();
-  setp(current_buffer_, current_buffer_ + buffer_size_);
-}
-
-char* StreamBuffer_t::get_empty_buffer()
-{
-  std::unique_lock lock(buffer_lock_);
-  buffer_free_.wait(lock, [this]
-  {
-    return !empty_buffer_queue_.empty() || stopping_; 
-  });
-
-  if (stopping_) { return nullptr; }
-
-  char* buf = empty_buffer_queue_.front();
-  empty_buffer_queue_.pop_front();
-
-  return buf;
-}
-
-void StreamBuffer_t::enqueue_task(const char* s, std::streamsize count)
-{
-  std::unique_lock<std::mutex> lock(task_lock_);
-  task_queue_.push_back(DataChunk{const_cast<char*>(s), static_cast<size_t>(count), next_id_++});
-  task_go_.notify_all();
-}
-
-void StreamBuffer_t::enqueue_task(char* buf, size_t len)
-{
-  std::unique_lock lock(task_lock_);
-  task_queue_.push_back(DataChunk{buf, len, next_id_++});
-  task_go_.notify_all();
-}
-
-bool StreamBuffer_t::get_task(DataChunk& task)
-{
-  std::unique_lock lock(task_lock_);
-  task_go_.wait(lock, [this]
-  { 
-    return stopping_ || !task_queue_.empty(); 
-  });
-
-  if (task_queue_.empty()) { return false; }
-
-  task = task_queue_.front();
-  task_queue_.pop_front();
-  return true;
-}
-
-void StreamBuffer_t::give_back_buffer(char* buf)
-{
-  std::unique_lock lock(buffer_lock_);
-  if (empty_buffer_queue_.size() > pool_size_)
-  {
-    delete[] buf;
-    return;
-  }
-  empty_buffer_queue_.push_back(buf);
-  buffer_free_.notify_all();
-}
-
-void StreamBuffer_t::stop()
-{
-  std::lock_guard lock(buffer_lock_);
-  stopping_ = true;
-  HRF_hive_.stop();
-  buffer_free_.notify_all();
-}
-
-void StreamBuffer_t::start()
-{
-  std::lock_guard lock(buffer_lock_);
-  stopping_ = false;
-  HRF_hive_.start_workers(threads_);
-  buffer_free_.notify_all();
-}
-
-
-

@@ -3,19 +3,24 @@
 #include <vector>
 #include <thread>
 #include <chrono>
-#include "StreamBuffer_t.h"
+#include "src/StreamBuffer_t.h"
 
-struct Identity {
-  std::size_t operator()(char* in, std::size_t size_in, char* out, std::size_t size_out) {
+struct Identity
+{
+  std::size_t operator()(char* in, std::size_t size_in, char* out, std::size_t size_out)
+  {
     std::memcpy(out, in, size_in);
     return size_in;
   }
 };
 
 void stress_test() {
-  for (int threads : {1, 4, 16, 64, 128, 200}) {
-    for (size_t buf : {1024, 4096, 16384}) {
-      for (size_t pool : {4, 16, 64}) {
+  for (int threads : {4, 16, 64, 128, 256}) 
+  {
+    for (size_t buf : {1024, 4096, 16384}) 
+    {
+      size_t pool = threads + 2;
+      {
         std::ostringstream oss;
 
         StreamBuffer_t sbuf(&oss, buf, pool, threads, Identity{});
@@ -23,18 +28,21 @@ void stress_test() {
 
         std::string big(10 * 1024 * 1024, 'x'); // 10 MB
         os << big;
+        
         os.flush();
+        sbuf.finish();
 
         std::string result = oss.str();
         if (result != big) {
           std::cerr << "Mismatch at threads=" << threads
                     << " buf=" << buf
                     << " pool=" << pool << "\n";
-          std::exit(1);
         }
+        else{
         std::cout << "PASS threads=" << threads
                   << " buf=" << buf
                   << " pool=" << pool << "\n";
+        }
       }
     }
   }

@@ -13,6 +13,7 @@ set(CUSTOM_CXX_FLAGS "-march=native" CACHE STRING "Custom C++ compiler flags")
 find_package(ZLIB)
 
 set(SOURCES
+    test2.cpp
     src/StreamBuffer_t.cpp
 )
 

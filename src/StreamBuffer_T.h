@@ -111,24 +111,6 @@ class ThreadWorkerHive
 
 
 
-// template <typename Functor>
-// class Streambuf_tFactory 
-// {
-//   public:
-//     using Buffer = StreamBuffer_t<Functor>;
-
-//     std::unique_ptr<Buffer> make(std::ostream& os, Functor fn)
-//     {
-//       if (!build_internally()) {throw std::runtime_error("Config not valid");}
-//       return std::make_unique<Buffer>(
-//           &os, config_.buffer_size, config_.pool_size, config_.threads, fn
-//       );
-//     }
-
-//   private:
-//     Config config_;
-//   };
-
 
 struct GzipCompressor
 {
@@ -148,6 +130,211 @@ struct GzipCompressor
   size_t operator()(char* in, size_t  size_in, char* out, size_t  size_out);
 
 };
+
+
+//streambuf or basic_streambuf?
+class StreamBuffer_t : public std::basic_streambuf<char>
+{
+  using Task_function_ = std::function<size_t(char*, std::size_t, char*& out, std::size_t& out_size)>;
+
+  public:
+    // Constructor
+    StreamBuffer_t(std::ostream* os, size_t buffer_size, size_t pool_size, int threads, Task_function_ func)
+      : source_os_(os), writing_sink_(os->rdbuf()), 
+      buffer_size_(buffer_size), pool_size_(pool_size), next_id_(0), threads_(threads),
+      stopping_(false), HRF_hive_(this, writing_sink_, threads, func)
+    {
+      // for (size_t  i = 0; i < pool_size; ++i)
+      // {
+      //   empty_buffer_queue_.push_back(std::make_unique<char[]>(buffer_size));
+      // }
+      for (size_t i = 0; i < pool_size; ++i) 
+      {
+        char* buf = new char[buffer_size];
+        empty_buffer_queue_.push_back(buf);
+      }
+      current_buffer_ = get_empty_buffer();
+      setp(current_buffer_, current_buffer_ + buffer_size);
+      source_os_->rdbuf(this);
+
+      
+    }
+
+    // delete copy
+    StreamBuffer_t(const StreamBuffer_t&) = delete;
+    StreamBuffer_t& operator=(const StreamBuffer_t&) = delete;
+
+    // Move should also be avoided, but is possible
+    StreamBuffer_t(StreamBuffer_t&& other) = delete;
+    // noexcept
+    //   : source_os_(other.source_os_), writing_sink_(other.writing_sink_),
+    //   HRF_hive_(std::move(other.HRF_hive_)),
+    //   buffer_size_(other.buffer_size_), current_buffer_(other.current_buffer_) 
+    // {
+    //   //reset pointers
+    //   char* new_base = current_buffer_;
+    //   setp(new_base, new_base + buffer_size_);
+    //   pbump(static_cast<int>(other.pptr() - other.pbase()));
+    //   source_os_->rdbuf(this);
+    //   // invalidate old pointers
+    //   other.current_buffer_ = nullptr;
+    //   other.writing_sink_ = nullptr;
+    //   other.source_os_ = nullptr;
+    // }
+
+    StreamBuffer_t& operator=(StreamBuffer_t&& other) = delete;
+    // noexcept 
+    // {
+    //   if (this != &other) 
+    //   {
+    //     sync();
+    //     source_os_ = other.source_os_;
+    //     writing_sink_ = other.writing_sink_;
+    //     HRF_hive_ = std::move(other.HRF_hive_);
+    //     current_buffer_ = other.current_buffer_;
+        
+    //     buffer_size_ = other.buffer_size_;
+    //     current_buffer_ = other.current_buffer_;
+        
+    //     other.current_buffer_ = nullptr;
+    //     other.writing_sink_ = nullptr;
+    //     other.source_os_ = nullptr;
+    //   }
+    //   return *this;
+    // }
+
+    ~StreamBuffer_t()
+    {
+      sync();
+      stop();
+      for (auto* buf : empty_buffer_queue_) {delete[] buf; }
+      source_os_->rdbuf(writing_sink_);
+    }
+
+    char* get_data()  { return current_buffer_; }
+    size_t  get_size()  { return pptr() - pbase(); }
+    std::streamsize get_available_space()  { return epptr() - pptr(); }
+    size_t get_buffer_size()  { return buffer_size_; }
+
+char* get_empty_buffer();
+
+  void enqueue_task(const char* s, std::streamsize count);
+
+  void enqueue_task(char* buf, size_t len);
+
+  bool get_task(DataChunk& task);
+
+  void give_back_buffer(char* buf);
+  void finish();
+
+  protected:
+        
+    int sync() override 
+    {
+      if (flush_buffer()) { return 0;}
+      return -1;
+    }
+
+    int_type overflow(int_type ch) override
+    {
+      if (ch != traits_type::eof()) 
+      {
+        if (pptr() == epptr()) { flush_buffer(); }
+        *pptr() = static_cast<char>(ch);
+        pbump(1);
+      } 
+      else { flush_buffer(); }
+      return ch;
+    }
+
+    std::streamsize xsputn(const char* s, std::streamsize count) override 
+    {
+      std::streamsize written = 0;
+      std::streamsize available_space = get_available_space();
+
+      if (count <= available_space)
+      {
+        std::memcpy(pptr(), s, count);
+        pbump(static_cast<int>(count));
+        if (get_available_space() == 0) { flush_buffer(); }
+        return count;
+      }
+      else
+      {
+        flush_buffer();
+        while (count >= buffer_size_)
+        {
+          enqueue_task(s, buffer_size_);
+          s += buffer_size_;
+          count -= buffer_size_;
+          written += buffer_size_;
+        }
+        if (count > 0)
+        {
+          std::memcpy(pptr(), s, count);
+          pbump(static_cast<int>(count));
+          written += count;
+        }
+        return written;
+      }
+    }
+
+  
+
+private:
+
+  bool flush_buffer();
+  void stop();
+  void start();
+
+  //member var
+  std::ostream* source_os_;
+  std::streambuf* writing_sink_;
+
+  std::deque<DataChunk> task_queue_;
+  std::deque<char*> empty_buffer_queue_;
+
+  std::mutex task_lock_;
+  std::mutex buffer_lock_;
+
+  std::condition_variable task_go_;
+  std::condition_variable buffer_free_;
+
+  //Honey Result Factory :D
+  ThreadWorkerHive HRF_hive_;
+
+  size_t  buffer_size_;
+  size_t  pool_size_;
+  size_t  next_id_;
+  int threads_;
+
+  char* current_buffer_;
+  std::atomic<bool> stopping_{true};
+
+}; // end class streambuffer_t
+
+
+
+// ThreadWorkerHive: 
+// worker_bees_ + queen_bee_writing_(writer)
+
+// template <typename Functor>
+// class Streambuf_tFactory 
+// {
+//   public:
+//     using Buffer = StreamBuffer_t<Functor>;
+
+//     std::unique_ptr<Buffer> make(std::ostream& os, Functor fn)
+//     {
+//       if (!build_internally()) {throw std::runtime_error("Config not valid");}
+//       return std::make_unique<Buffer>(
+//           &os, config_.buffer_size, config_.pool_size, config_.threads, fn
+//       );
+//     }
+
+//   private:
+//     Config config_;
+//   };
 
 // // Factory set up, that handles all input and set up
 // template <typename Functor>
@@ -303,189 +490,3 @@ struct GzipCompressor
 //   //   return std::make_unique<StreamBuffer_t<Functor>>(os, buffer_size_, threads, pool_size, func_);
 //   // }
 
-
-
-//streambuf or basic_streambuf?
-class StreamBuffer_t : public std::basic_streambuf<char>
-{
-  using Task_function_ = std::function<size_t(char*, std::size_t, char*& out, std::size_t& out_size)>;
-
-  public:
-    // Constructor
-    StreamBuffer_t(std::ostream* os, size_t buffer_size, size_t pool_size, int threads, Task_function_ func)
-      : source_os_(os), writing_sink_(os->rdbuf()), 
-      buffer_size_(buffer_size), pool_size_(pool_size), next_id_(0), threads_(threads),
-      stopping_(false), HRF_hive_(this, writing_sink_, threads, func)
-    {
-      // for (size_t  i = 0; i < pool_size; ++i)
-      // {
-      //   empty_buffer_queue_.push_back(std::make_unique<char[]>(buffer_size));
-      // }
-      for (size_t i = 0; i < pool_size; ++i) 
-      {
-        char* buf = new char[buffer_size];
-        empty_buffer_queue_.push_back(buf);
-      }
-      current_buffer_ = get_empty_buffer();
-      setp(current_buffer_, current_buffer_ + buffer_size);
-      source_os_->rdbuf(this);
-
-      
-    }
-
-    // delete copy
-    StreamBuffer_t(const StreamBuffer_t&) = delete;
-    StreamBuffer_t& operator=(const StreamBuffer_t&) = delete;
-
-    // Move should also be avoided, but is possible
-    StreamBuffer_t(StreamBuffer_t&& other) = delete;
-    // noexcept
-    //   : source_os_(other.source_os_), writing_sink_(other.writing_sink_),
-    //   HRF_hive_(std::move(other.HRF_hive_)),
-    //   buffer_size_(other.buffer_size_), current_buffer_(other.current_buffer_) 
-    // {
-    //   //reset pointers
-    //   char* new_base = current_buffer_;
-    //   setp(new_base, new_base + buffer_size_);
-    //   pbump(static_cast<int>(other.pptr() - other.pbase()));
-    //   source_os_->rdbuf(this);
-    //   // invalidate old pointers
-    //   other.current_buffer_ = nullptr;
-    //   other.writing_sink_ = nullptr;
-    //   other.source_os_ = nullptr;
-    // }
-
-    StreamBuffer_t& operator=(StreamBuffer_t&& other) = delete;
-    // noexcept 
-    // {
-    //   if (this != &other) 
-    //   {
-    //     sync();
-    //     source_os_ = other.source_os_;
-    //     writing_sink_ = other.writing_sink_;
-    //     HRF_hive_ = std::move(other.HRF_hive_);
-    //     current_buffer_ = other.current_buffer_;
-        
-    //     buffer_size_ = other.buffer_size_;
-    //     current_buffer_ = other.current_buffer_;
-        
-    //     other.current_buffer_ = nullptr;
-    //     other.writing_sink_ = nullptr;
-    //     other.source_os_ = nullptr;
-    //   }
-    //   return *this;
-    // }
-
-    ~StreamBuffer_t()
-    {
-      sync();
-      stop();
-      for (auto* buf : empty_buffer_queue_) {delete[] buf; }
-      source_os_->rdbuf(writing_sink_);
-    }
-
-    char* get_data()  { return current_buffer_; }
-    size_t  get_size()  { return pptr() - pbase(); }
-    std::streamsize get_available_space()  { return epptr() - pptr(); }
-    size_t get_buffer_size()  { return buffer_size_; }
-
-char* get_empty_buffer();
-
-  void enqueue_task(const char* s, std::streamsize count);
-
-  void enqueue_task(char* buf, size_t len);
-
-  bool get_task(DataChunk& task);
-
-  void give_back_buffer(char* buf);
-
-  protected:
-        
-    int sync() override 
-    {
-      flush_buffer();
-      return 0;
-    }
-
-    int_type overflow(int_type ch) override
-    {
-      if (ch != traits_type::eof()) 
-      {
-        if (pptr() == epptr()) { flush_buffer(); }
-        *pptr() = static_cast<char>(ch);
-        pbump(1);
-      } 
-      else { flush_buffer(); }
-      return ch;
-    }
-
-    std::streamsize xsputn(const char* s, std::streamsize count) override 
-    {
-      std::streamsize written = 0;
-      std::streamsize available_space = get_available_space();
-
-      if (count <= available_space)
-      {
-        std::memcpy(pptr(), s, count);
-        pbump(static_cast<int>(count));
-        if (get_available_space() == 0) { flush_buffer(); }
-        return count;
-      }
-      else
-      {
-        flush_buffer();
-        while (count >= buffer_size_)
-        {
-          enqueue_task(s, buffer_size_);
-          s += buffer_size_;
-          count -= buffer_size_;
-          written += buffer_size_;
-        }
-        if (count > 0)
-        {
-          std::memcpy(pptr(), s, count);
-          pbump(static_cast<int>(count));
-          written += count;
-        }
-        return written;
-      }
-    }
-
-  
-
-private:
-
-  void flush_buffer();
-  void stop();
-  void start();
-
-  //member var
-  std::ostream* source_os_;
-  std::streambuf* writing_sink_;
-
-  std::deque<DataChunk> task_queue_;
-  std::deque<char*> empty_buffer_queue_;
-
-  std::mutex task_lock_;
-  std::mutex buffer_lock_;
-
-  std::condition_variable task_go_;
-  std::condition_variable buffer_free_;
-
-  //Honey Result Factory :D
-  ThreadWorkerHive HRF_hive_;
-
-  size_t  buffer_size_;
-  size_t  pool_size_;
-  size_t  next_id_;
-  int threads_;
-
-  char* current_buffer_;
-  std::atomic<bool> stopping_{true};
-
-}; // end class streambuffer_t
-
-
-
-// ThreadWorkerHive: 
-// worker_bees_ + queen_bee_writing_(writer)
