@@ -77,7 +77,11 @@ class ThreadWorkerHive
     //   }
     //   return *this;
     // }
-
+    bool is_results_empty()
+    {
+      std::unique_lock<std::mutex> lock(bee_stop_);
+      return results_.empy();
+    }
 
     void start_workers(size_t threads);
 
@@ -100,7 +104,7 @@ class ThreadWorkerHive
     StreamBuffer_t* task_manager_;
     std::streambuf* writing_sink_;
     
-    std::atomic<bool> stopping_{true};
+    bool stopping_{true};
 
     void worker_loop();
 
@@ -215,6 +219,13 @@ class StreamBuffer_t : public std::basic_streambuf<char>
     size_t  get_size()  { return pptr() - pbase(); }
     std::streamsize get_available_space()  { return epptr() - pptr(); }
     size_t get_buffer_size()  { return buffer_size_; }
+    bool is_buffer_empty() { return get_size() == buffer_size_; }
+    
+    bool is_task_queue_empty()
+    { 
+      std::unique_lock<std::mutex> lock(task_lock_);
+      return task_queue_.empty()
+    }
 
 char* get_empty_buffer();
 

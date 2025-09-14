@@ -111,7 +111,7 @@ size_t  GzipCompressor::operator()(char* in, size_t  size_in, char* out, size_t 
     deflateEnd(&strm); 
     throw std::runtime_error("deflateInit2 failed");
   }
-  do 
+  do
   {
     next_block = std::min(chunk_size_, size_in - read_in);
     flush = (next_block < chunk_size_) ? Z_FINISH : Z_NO_FLUSH;
@@ -161,7 +161,7 @@ char* StreamBuffer_t::get_empty_buffer()
   {
     return !empty_buffer_queue_.empty() || stopping_; 
   });
-  //if (stopping_) { return nullptr; }
+  if (stopping_ && HRF_hive_.is_results_empty()) { return nullptr; }
 
   char* buf = empty_buffer_queue_.front();
   empty_buffer_queue_.pop_front();
