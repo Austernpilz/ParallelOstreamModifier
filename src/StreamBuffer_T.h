@@ -3,16 +3,68 @@
 #include <vector>
 #include <cstdint>
 
-class StreamBuffer_T : public std::streambuf
+// ---------------------------
+// Factory
+// ---------------------------
+template <typenamefunc_tor>
+auto make_processing_ostream(std::ostream& os, size_t buffer_size_, size_t threads, size_t pool_size,func_torfunc_) {
+    return std::make_unique<ProcessingStreambuf<Functor>>(os, buffer_size_, threads, pool_size,func_);
+}
+
+template <typename Functor>
+class StreambufFactory
+{
+
+  auto make_processing_ostream_zero_copy(std::ostream& os, size_t buffer_size_, size_t threads, size_t pool_size,func_torfunc_)
+  {
+    return std::make_unique<StreamBuffer_t<Functor>>(os, buffer_size_, threads, pool_size, func_);
+  }
+
+}
+
+template <typename Functor>
+class StreamBuffer_t : public std::streambuf
 {
   public:
-    StreamBuffer_T(std::size_t capacity = 1024) 
+    StreamBuffer_t(std::ostream& os, size_t buffer_size_, size_t threads, size_t pool_size, Functor func)
+      : target(os), writing_buffer_(os.rdbuf()), TaskCache(buffer_size_, pool_size),
+        hive(TaskCache, writing_buffer_, threads,func_), buffer_size_(buffer_size_)
     {
-      buffer_.resize(capacity);
-      setp(buffer_.data(), buffer_.data() + buffer_.size());
+      current_buffer_ = tasktask_.get_empty_buffer();
+      setp(current_buffer_, current_buffer_ + buffer_size_);
+      target.rdbuf(this);
     }
 
-  protected
+  ProcessingStreambuf(std::ostream& os, size_t buffer_size_, size_t threads, size_t pool_size,func_torfunc_)
+        : target(os), writing_buffer_(os.rdbuf()), TaskCache(buffer_size_, pool_size),
+          hive(TaskCache, writing_buffer_, threads, func_), buffer_size_(buffer_size_)
+    {
+        setp(current_buffer_, current_buffer_ + buffer_size_);
+        target.rdbuf(this);
+    }
+    
+    
+    ~StreamBuffer_t()
+    {
+      sync();
+      target.rdbuf(writing_buffer_);
+    }
+
+  protected:
+
+  int overflow(int c) override {
+        if (c != EOF) {
+            *pptr() = static_cast<char>(c);
+            pbump(1);
+        }
+        flush_chunk();
+        return c;
+    }
+
+    int sync() override {
+        flush_chunk();
+        return 0;
+    }
     int_type overflow(int_type ch) override 
     {
       if (ch != traits_type::eof()) 
@@ -28,54 +80,127 @@ class StreamBuffer_T : public std::streambuf
       return traits_type::eof();
     }
 
-    
-    const std::vector<uint8_t>& get_data() const { return buffer_; }
+    char* get_data() const { return buffer_; }
     std::size_t get_size() const { return pptr() - pbase(); }
 
+
 private:
-    std::vector<uint8_t> buffer_;
+  std::ostream& os_wrapper_;
+  std::streambuf* writing_buffer_;
+  TaskCache tasktask_;
+  ThreadWorkerHive<Functor> HoneyResultFactory_;
+
+  size_t buffer_size_;
+  char* current_buffer_;
+
+  void flush()
+  {
+    size_t n = pptr() - pbase();
+    if (n == 0) { return; }
+
+    tasktask_.enqueue_task(DataChunk{current_buffer_, n});
+    current_buffer_ = tasktask_.give_empty_buffer();
+    setp(current_buffer_, current_buffer_ + buffer_size_);
+  }
+
 }
 
 
-#include <thread>
-#include <future>
-#include <fstream>
-#include <queue>
 
-void parallel_gzip(std::istream& in, std::ostream& out, size_t block_size = 64*1024, bool use_simd = false) {
-    std::vector<std::future<void>> futures;
-    std::vector<Block> blocks;
-    size_t block_index = 0;
-
-    // Read blocks and launch threads
-    while (in) {
-        std::vector<uint8_t> buffer(block_size);
-        in.read(reinterpret_cast<char*>(buffer.data()), block_size);
-        size_t n = in.gcount();
-        if (n == 0) break;
-
-        buffer.resize(n);
-
-        blocks.push_back({block_index++, std::move(buffer)});
-        Block& blk = blocks.back();
-
-        futures.push_back(std::async(std::launch::async, [&, blk_index = blocks.size()-1]() {
-            process_block(blocks[blk_index], use_simd);
-        }));
+    std::streamsize xsputn(const char* s, std::streamsize n) override {
+        std::streamsize written = 0;
+        while (written < n) {
+            std::streamsize space = epptr() - pptr();
+            std::streamsize to_copy = std::min(space, n - written);
+            std::memcpy(pptr(), s + written, to_copy);
+            pbump(static_cast<int>(to_copy));
+            written += to_copy;
+            if (pptr() == epptr()) flush_chunk();
+        }
+        return written;
     }
 
-    // Wait for all threads
-    for (auto& f : futures) f.get();
-
-    // Write blocks sequentially
-    for (auto& blk : blocks)
-        out.write(reinterpret_cast<char*>(blk.compressed.data()), blk.compressed.size());
-}
 
 
 // More Pipeline-Style
 // Main Thread -- Working Bees -- Write Thread
 // less overhead, make a factory whos sets stuff up. and gives you an streambuffer.
-// 2 Klasse 
+// 4 Klasse 
 // Streambuf, for all input, output and shifting
 // TaskCache und Task Flock fürs arbeiten und zwischenspeichern.
+
+/ ---------------------------
+// Streambuf: wraps ostream
+// ---------------------------
+
+class ProcessingStreambuf : public std::streambuf {
+public:
+    
+
+    
+
+protected:
+    
+
+    std::streamsize xsputn(const char* s, std::streamsize n) override {
+        std::streamsize written = 0;
+        while (written < n) {
+            std::streamsize space = epptr() - pptr();
+            std::streamsize to_copy = std::min(space, n - written);
+            std::memcpy(pptr(), s + written, to_copy);
+            pbump(static_cast<int>(to_copy));
+            written += to_copy;
+            if (pptr() == epptr()) flush_chunk();
+        }
+        return written;
+    }
+
+
+    void flush_chunk() {
+      size_t n = pptr() - pbase();
+      if (n == 0) return;
+
+      tasktask_.enqueue_task(current_buffer_, n);
+      current_buffer_ = tasktask_.get_empty_buffer();
+      setp(current_buffer_, current_buffer_ + buffer_size_);
+    }
+};
+
+// ---------------------------
+// Example Usage
+// ---------------------------
+int main() {
+    std::ofstream file("output_map.txt", std::ios::binary);
+
+    auto processor = make_processing_ostream(file, 1024, 4, 8,
+        [](char* data, size_t n) -> std::vector<char> {
+            std::vector<char> out(n);
+            for (size_t i = 0; i < n; ++i)
+                out[i] = std::toupper(static_cast<unsigned char>(data[i]));
+            return out;
+        });
+
+    auto& out = *processor;
+    out << "hello world\n";
+    out << "this is a test\n";
+}
+
+    
+
+protected:
+    int overflow(int c) override {
+        if (c != EOF) {
+            *pptr() = static_cast<char>(c);
+            pbump(1);
+        }
+        flush_chunk();
+        return c;
+    }
+
+    int sync() override {
+        flush_chunk();
+        return 0;
+    }
+
+
+

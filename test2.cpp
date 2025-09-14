@@ -172,6 +172,19 @@ int main(int argc, char* argv[]) {
 }
 
 
+// int main() {
+//     std::ofstream file("output_zero_copy.txt", std::ios::binary);
+
+//     auto processor = make_processing_ostream_zero_copy(file, 1024, 4, 8,
+//         [](char* input, size_t n, char* output){
+//             for (size_t i = 0; i < n; ++i)
+//                 output[i] = std::toupper(static_cast<unsigned char>(input[i]));
+//         });
+
+//     auto& out = *processor;
+//     out << "zero copy TaskCache test\n";
+//     out << "all buffers are recycled\n";
+// }
 
 // using std::vector<char> = std::vector<char>;
 
