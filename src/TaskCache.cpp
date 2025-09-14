@@ -30,7 +30,7 @@ class TaskCache
     {
       for (std::size_t i = 0; i < n_buffer; ++i)
       {
-        empty_buffer_queue_.push_back(std::unique_ptr<char[buf_size]>);
+        empty_buffer_queue_.push_back(std::make_unique<char[]>(buf_size));
       }
     }
 
@@ -42,7 +42,7 @@ class TaskCache
     TaskCache(TaskCache&& other) noexcept 
     {
       other.stop();
-      std::scoped_lock lock(other.task_lock_, other.buffer_lock_);
+      std::scoped_lock lock(other.task_lock_, other.buffer_free_);
       task_queue_ = std::move(other.task_queue_);
       empty_buffer_queue_ = std::move(other.empty_buffer_queue_);
       buffer_size_ = other.buffer_size_;
@@ -57,7 +57,7 @@ class TaskCache
         stop();
         other.stop();
         //becuse after me hive will be moved, and hive automatically calls stop
-        std::scoped_lock lock(task_lock_, buffer_lock_, other.task_lock_, other.buffer_lock_);
+        std::scoped_lock lock(task_lock_, buffer_free_, other.task_lock_, other.buffer_free_);
         task_queue_ = std::move(other.task_queue_);
         empty_buffer_queue_ = std::move(other.empty_buffer_queue_);
         buffer_size_ = other.buffer_size_;
@@ -69,17 +69,15 @@ class TaskCache
 
   ~TaskCache()
   { 
-    std::unique_lock<std::mutex> lock(buffer_lock_);
-    if (!stopping_) { stop(); }
-    for (auto buf : empty_buffer_queue_) { delete[] buf; }
+    stop();
   }
 
   char* get_empty_buffer()
   {
     std::unique_lock lock(buffer_lock_);
-    buffer_lock_.wait(lock, [this]
+    buffer_free_.wait(lock, [this]
     {
-      return !empty_buffer_queue_.empty() || stopping; 
+      return !empty_buffer_queue_.empty() || stopping_; 
     });
 
     if (stopping_) { return nullptr; }
@@ -89,10 +87,11 @@ class TaskCache
 
     return buf;
   }
-  void enqueue_task(const char* s, std::streamsize size_s)
+  void enqueue_task(const char* s, std::streamsize count)
   {
-    
-    task_queue_.push_back(DataChunk{const_cast<char*>(s), len, next_id_++});
+    std::unique_lock<std::mutex> lock(task_lock_);
+    task_queue_.push_back(DataChunk{const_cast<char*>(s), count, next_id_++, true});
+    task_go_.notify_all();
   }
 
   void enqueue_task(char* buf, size_t len)
@@ -126,7 +125,7 @@ class TaskCache
 
   void stop()
   {
-    std::lock_guard lock(buffer_lock_);
+    std::lock_guard lock(bu);
     stopping_ = true;
     buffer_free_.notify_all();
   }
@@ -139,8 +138,8 @@ class TaskCache
   }
 
 private:
-    std::queue<DataChunk> task_queue_;
-    std::queue<std::unique_ptr<char[]>> empty_buffer_queue_;
+    std::deque<DataChunk> task_queue_;
+    std::deque<std::unique_ptr<char[]>> empty_buffer_queue_;
   
     std::mutex task_lock_;
     std::mutex buffer_lock_;
@@ -163,7 +162,7 @@ class ThreadWorkerHive
 {
   public:
     ThreadWorkerHive(TaskCache& t_cache, std::streambuf* out, size_t threads, Functor fn)
-      : task_manager_(cache), writing_sink_(out), func_(std::move(fn))
+      : task_manager_(t_cache), writing_sink_(out), func_(std::move(fn))
       {
         start_workers(threads);
       }
@@ -218,7 +217,7 @@ class ThreadWorkerHive
 
     void start_workers(size_t threads)
     {
-      TaskCache.start();
+      task_manager_.start();
       {
         std::unique_lock lock(bee_stop_);
         stopping_ = false;
@@ -235,7 +234,7 @@ class ThreadWorkerHive
     void reset(size_t threads, Functor&& fn)
     {
       stop();
-      results_map_.clear();
+      results_.clear();
       write_id_ = 0;
       func_ = std::move(fn);
       start_workers(threads);
@@ -259,16 +258,16 @@ class ThreadWorkerHive
   private:
     std::vector<std::thread> worker_bees_;
     std::thread queen_bee_writing_;
-    Functor func;
+    Functor func_;
 
-    std::unordered_map<std::size_t, <std::unique_ptr<char[], std::size_t>> results_map_;
+    std::deque<DataChunk> results_;
     
     std::condition_variable bee_go_;
     std::mutex bee_stop_;
 
     alignas(64) size_t write_id_;
 
-    TaskCache& TaskCache;
+    TaskCache& task_manager_;
     std::streambuf* writing_sink_;
     
     std::atomic<bool> stopping_{true};
@@ -283,7 +282,7 @@ class ThreadWorkerHive
         
         {
           std::lock_guard lock(bee_stop_);
-          results_map_[task.id_] = std::make_pair(res, task.size_);
+          results_[task.id_] = std::make_pair(res, task.size_);
           bee_go_.notify_one();
         }
         task_manager_.give_back_buffer(task.data_);
@@ -299,16 +298,16 @@ class ThreadWorkerHive
           std::unique_lock lock(bee_stop_);
           bee_go_.wait(lock, [this]
           {
-            return stopping_ || results_map_.count(write_id_); 
+            return stopping_ || results_.count(write_id_); 
           });
 
-          if (stopping_ && results_map_.empty()) { break; }
+          if (stopping_ && results_.empty()) { break; }
 
-          auto it = results_map_.find(write_id_);
-          if (it == results_map_.end()) { continue;}
+          auto it = results_.find(write_id_);
+          if (it == results_.end()) { continue;}
 
           res = std::move(it->second);
-          results_map_.erase(it);
+          results_.erase(it);
           write_id_++;
         }
 

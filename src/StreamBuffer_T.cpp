@@ -18,9 +18,6 @@ class Streambuf_tFactory
     Streambuf_tFactory() = default;
     ~Streambuf_tFactory() = default;
 
-    
-    
-
     // get/set defaults
     Config get_config() { return config_; }
     void set_config(Config c) { config_ = c; }
@@ -41,56 +38,25 @@ class Streambuf_tFactory
     void set_function(Functor f) { function_ = f; }
     void set_function(const char* flag[]);
 
-    bool init()
-    {
-      if(config_.memory_size > 0 &&
-         config_.buffer_size > 0 &&
-         conifig_.pool_size > 0 &&
-         config._threads > 0)
-      {
-        return true;
-      }
-      else { return build_internally(); }
-    }
 
-    bool build_internally()
-    {
-      if (config_.threads == 0) { set_num_threads_from_external(); }
-
-      if (config_.pool_size == 0) { set_pool_size_from_external(); }
-
-      if (config_.memory_size == 0) { set_memory_size_from_external(); }
-
-      if (config_.buffer_size == 0) { set_buffer_size_from_external(); }
-      
-      return config_.memory_size > 0 && config_.buffer_size > 0 && conifig_.pool_size > 0 && config._threads > 0;
-    }
-
-     
-
+    std::ostream make(std::ostream& os);
+    std::ostream make(std::ostream& os, Functor fn);
+    std::ostream make(std::ostream& os, Functor fn, Config& cfg);
+    std::unique_ptr<StreamBuffer_t<Functor>> make(std::ostream& os);
+    std::unique_ptr<StreamBuffer_t<Functor>> make(std::ostream& os, Functor fn);
+    std::unique_ptr<StreamBuffer_t<Functor>> make(std::ostream& os, Functor fn, Config& cfg); 
+    
     // factory make function
-    std::unique_ptr<StreamBuffer_t<Functor>> make(
-        std::ostream& os, Functor fn, const Config& cfg = Config{}) const 
+    std::unique_ptr<StreamBuffer_t<Functor>> make(std::ostream& os, Functor fn, Config& cfg) 
     {
         return std::make_unique<StreamBuffer_t<Functor>>(
             os, cfg.buffer_size, cfg.threads, cfg.pool_size, fn
         );
     }
 
-    // convenience overload: read env first
-    std::unique_ptr<StreamBuffer_t<Functor>> make_from_env(
-        std::ostream& os, Functor fn) const 
-    {
-        return make(os, fn, get_config());
-    }
+    
 
-    // // Example of "internal functors"
-    // struct Identity 
-    // {
-    //   std::vector<unsigned char> operator()(std::vector<unsigned char>&& in) {
-    //       return std::move(in); // no-op
-    // }
-    // };
+    
     private:
       struct Config 
       {
@@ -101,6 +67,32 @@ class Streambuf_tFactory
         int threads{0};
       };
       Config config_{};
+      Functor func_;
+     
+      bool init()
+      {
+        if(config_.memory_size > 0 &&
+            config_.buffer_size > 0 &&
+            config_.pool_size > 0 &&
+            config_.threads > 0)
+        {
+          return true;
+        }
+        else { return build_internally(); }
+      }
+
+      bool build_internally()
+      {
+        if (config_.threads == 0) { set_num_threads_from_external(); }
+
+        if (config_.pool_size == 0) { set_pool_size_from_external(); }
+
+        if (config_.memory_size == 0) { set_memory_size_from_external(); }
+
+        if (config_.buffer_size == 0) { set_buffer_size_from_external(); }
+        
+        return config_.memory_size > 0 && config_.buffer_size > 0 && config_.pool_size > 0 && config_.threads > 0;
+      }
 
       void set_memory_size_from_external()
       {
@@ -110,12 +102,12 @@ class Streambuf_tFactory
           return;
         }
 
-        if (config.buffer_size && (config_.pool_size || config_.threads))
+        if (config_.buffer_size && (config_.pool_size || config_.threads))
         {
           if (!config_.pool_size) { set_pool_size_from_external(); }
-          config_.memory_size = config.buffer_size * config_.pool_size;
+          config_.memory_size = config_.buffer_size * config_.pool_size;
         }
-        else { config_.memory_size = 10 * 1024 * 1024;} //10mb as a standard
+        else { config_.memory_size = 10 * 1024 * 1024; } //10mb as a standard
       }
 
       void set_num_threads_from_external()
@@ -126,9 +118,9 @@ class Streambuf_tFactory
           return;
         }
         #ifdef _OPENMP
-          config._threads = omp_get_num_threads();
+          config_.threads = omp_get_num_threads();
         #else
-          config._threads = std::max(std::thread::hardware_concurrency(), 1);
+          config_.threads = std::max(std::thread::hardware_concurrency(), 1);
         #endif
       }
 
@@ -142,7 +134,7 @@ class Streambuf_tFactory
         else
         {
           // one for every thread, plus 1 for streambuf, 2 for cycling
-          config_.pool_size = static_cast<std::size_t>(config_.threads) + 3
+          config_.pool_size = static_cast<std::size_t>(config_.threads) + 3;
         }
       }
 
@@ -152,11 +144,6 @@ class Streambuf_tFactory
         {
           config_.buffer_size = std::stoul(env);
           return;
-        }
-        if (config.memory_size &&)
-        {
-          if (!config_.pool_size) { set_pool_size_from_external(); }
-          config_.memory_size = config.buffer_size * config_.pool_size;
         }
         else { config_.memory_size = 10 * 1024 * 1024;} //10mb as a standard
       }
@@ -170,13 +157,6 @@ class Streambuf_tFactory
     };
 };
 
-template <typename Functor>
-class Streambuf_tFactory
-{
-  Streambuf_tFactory() = default;
-  
-  set();
-  make();
   
   std::numeric_limits<int>::max(); // is the maximung buffer_size
   StreamBuffer_t make_processing_ostream_zero_copy(std::ostream &os, size_t buffer_size_, size_t threads, size_t pool_size, Functor func)
@@ -307,7 +287,7 @@ class StreamBuffer_t : public std::streambuf
       return ch;
     }
 
-    char* get_data() const { return buffer_; }
+    char* get_data() const { return current_buffer_; }
     std::size_t get_size() const { return pptr() - pbase(); }
     std::streamsize get_available_space() const { return epptr() - pptr(); }
 
@@ -315,7 +295,7 @@ private:
   std::ostream* source_os_;
   std::streambuf* writing_sink_;
   TaskCache tasktask_;
-  ThreadWorkerhive_<Functor> HoneyResultFactory_;
+  ThreadWorkerHive_<Functor> HoneyResultFactory_;
 
   size_t buffer_size_;
   char* current_buffer_;
@@ -330,45 +310,45 @@ private:
   }
 
 
-    std::streamsize xsputn(const char* s, std::streamsize count) override 
+  std::streamsize xsputn(const char* s, std::streamsize count) override 
+  {
+    std::streamsize written = 0;
+    std::streamsize available_space = get_available_space();
+
+    if (count <= available_space)
     {
-      std::streamsize written = 0;
-      std::streamsize available_space = get_available_space();
-
-      if (count <= available_space)
-      {
-        std::memcpy(pptr(), s, count);
-        pbump(static_cast<int>(count));
-        if (get_available_space() == 0) { flush_buffer(); }
-        return count;
-      }
-
-      if (available_space > 0) 
-      {
-        std::memcpy(pptr(), s, available_space);
-        pbump(static_cast<int>(available_space));
-        flush_buffer();
-        s += remain;
-        count -= remain;
-        written += remain;
-      }
-
-      while (count >= static_cast<std::streamsize>(buffer_size_))
-      {
-        tasktask_.enqueue_task(s, buffer_size_);
-        s += buffer_size_;
-        count -= buffer_size_;
-        written += buffer_size_;
-      }
-
-      if (count > 0)
-      {
-        std::memcpy(pptr(), s, n);
-        pbump(static_cast<int>(count));
-        written += count;
-      }
-      return written;
+      std::memcpy(pptr(), s, count);
+      pbump(static_cast<int>(count));
+      if (get_available_space() == 0) { flush_buffer(); }
+      return count;
     }
+
+    if (available_space > 0) 
+    {
+      std::memcpy(pptr(), s, available_space);
+      pbump(static_cast<int>(available_space));
+      flush_buffer();
+      s += available_space;
+      count -= available_space;
+      written += available_space;
+    }
+
+    while (count >= static_cast<std::streamsize>(buffer_size_))
+    {
+      tasktask_.enqueue_task(s, buffer_size_);
+      s += buffer_size_;
+      count -= buffer_size_;
+      written += buffer_size_;
+    }
+
+    if (count > 0)
+    {
+      std::memcpy(pptr(), s, n);
+      pbump(static_cast<int>(count));
+      written += count;
+    }
+    return written;
+  }
 
 }; // end class streambuffer_t
 
