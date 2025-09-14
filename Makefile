@@ -129,77 +129,29 @@ main/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/build
 .PHONY : main/fast
 
-src/GzipCompressor.o: src/GzipCompressor.cpp.o
-.PHONY : src/GzipCompressor.o
+src/StreamBuffer_t.o: src/StreamBuffer_t.cpp.o
+.PHONY : src/StreamBuffer_t.o
 
 # target to build an object file
-src/GzipCompressor.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/GzipCompressor.cpp.o
-.PHONY : src/GzipCompressor.cpp.o
+src/StreamBuffer_t.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/StreamBuffer_t.cpp.o
+.PHONY : src/StreamBuffer_t.cpp.o
 
-src/GzipCompressor.i: src/GzipCompressor.cpp.i
-.PHONY : src/GzipCompressor.i
-
-# target to preprocess a source file
-src/GzipCompressor.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/GzipCompressor.cpp.i
-.PHONY : src/GzipCompressor.cpp.i
-
-src/GzipCompressor.s: src/GzipCompressor.cpp.s
-.PHONY : src/GzipCompressor.s
-
-# target to generate assembly for a file
-src/GzipCompressor.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/GzipCompressor.cpp.s
-.PHONY : src/GzipCompressor.cpp.s
-
-src/ParallelDataModifier.o: src/ParallelDataModifier.cpp.o
-.PHONY : src/ParallelDataModifier.o
-
-# target to build an object file
-src/ParallelDataModifier.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/ParallelDataModifier.cpp.o
-.PHONY : src/ParallelDataModifier.cpp.o
-
-src/ParallelDataModifier.i: src/ParallelDataModifier.cpp.i
-.PHONY : src/ParallelDataModifier.i
+src/StreamBuffer_t.i: src/StreamBuffer_t.cpp.i
+.PHONY : src/StreamBuffer_t.i
 
 # target to preprocess a source file
-src/ParallelDataModifier.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/ParallelDataModifier.cpp.i
-.PHONY : src/ParallelDataModifier.cpp.i
+src/StreamBuffer_t.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/StreamBuffer_t.cpp.i
+.PHONY : src/StreamBuffer_t.cpp.i
 
-src/ParallelDataModifier.s: src/ParallelDataModifier.cpp.s
-.PHONY : src/ParallelDataModifier.s
-
-# target to generate assembly for a file
-src/ParallelDataModifier.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/ParallelDataModifier.cpp.s
-.PHONY : src/ParallelDataModifier.cpp.s
-
-src/Stress_test.o: src/Stress_test.cpp.o
-.PHONY : src/Stress_test.o
-
-# target to build an object file
-src/Stress_test.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/Stress_test.cpp.o
-.PHONY : src/Stress_test.cpp.o
-
-src/Stress_test.i: src/Stress_test.cpp.i
-.PHONY : src/Stress_test.i
-
-# target to preprocess a source file
-src/Stress_test.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/Stress_test.cpp.i
-.PHONY : src/Stress_test.cpp.i
-
-src/Stress_test.s: src/Stress_test.cpp.s
-.PHONY : src/Stress_test.s
+src/StreamBuffer_t.s: src/StreamBuffer_t.cpp.s
+.PHONY : src/StreamBuffer_t.s
 
 # target to generate assembly for a file
-src/Stress_test.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/Stress_test.cpp.s
-.PHONY : src/Stress_test.cpp.s
+src/StreamBuffer_t.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/StreamBuffer_t.cpp.s
+.PHONY : src/StreamBuffer_t.cpp.s
 
 # Help Target
 help:
@@ -210,15 +162,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... main"
-	@echo "... src/GzipCompressor.o"
-	@echo "... src/GzipCompressor.i"
-	@echo "... src/GzipCompressor.s"
-	@echo "... src/ParallelDataModifier.o"
-	@echo "... src/ParallelDataModifier.i"
-	@echo "... src/ParallelDataModifier.s"
-	@echo "... src/Stress_test.o"
-	@echo "... src/Stress_test.i"
-	@echo "... src/Stress_test.s"
+	@echo "... src/StreamBuffer_t.o"
+	@echo "... src/StreamBuffer_t.i"
+	@echo "... src/StreamBuffer_t.s"
 .PHONY : help
 
 

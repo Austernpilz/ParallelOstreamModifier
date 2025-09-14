@@ -3,10 +3,12 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include "src/StreamBuffer_t.cpp"
 
 struct Identity {
-  void operator()(const char* in, std::size_t n, char* out) {
-    std::memcpy(out, in, n);
+  std::size_t operator()(const char* in, std::size_t size_in, char* out, std::size_t size_out) {
+    std::memcpy(out, in, size_in);
+    return size_in
   }
 };
 

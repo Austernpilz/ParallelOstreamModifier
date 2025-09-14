@@ -13,9 +13,7 @@ set(CUSTOM_CXX_FLAGS "-march=native" CACHE STRING "Custom C++ compiler flags")
 find_package(ZLIB)
 
 set(SOURCES
-    src/Stress_test.cpp
-    src/GzipCompressor.cpp
-    src/ParallelDataModifier.cpp
+    src/StreamBuffer_t.cpp
 )
 
 # Setup executable
