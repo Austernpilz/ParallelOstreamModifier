@@ -3,12 +3,12 @@
 #include <vector>
 #include <thread>
 #include <chrono>
-#include "src/StreamBuffer_t.cpp"
+#include "StreamBuffer_t.h"
 
 struct Identity {
-  std::size_t operator()(const char* in, std::size_t size_in, char* out, std::size_t size_out) {
+  std::size_t operator()(char* in, std::size_t size_in, char* out, std::size_t size_out) {
     std::memcpy(out, in, size_in);
-    return size_in
+    return size_in;
   }
 };
 
@@ -18,7 +18,7 @@ void stress_test() {
       for (size_t pool : {4, 16, 64}) {
         std::ostringstream oss;
 
-        StreamBuffer_t<Identity> sbuf(&oss, buf, pool, threads, Identity{});
+        StreamBuffer_t sbuf(&oss, buf, pool, threads, Identity{});
         std::ostream os(&sbuf);
 
         std::string big(10 * 1024 * 1024, 'x'); // 10 MB
@@ -40,7 +40,12 @@ void stress_test() {
   }
 }
 
+int main(int argc, char* argv[])
+{
+  stress_test();
 
+  return 0;
+}
 
 
 // #include <chrono>
