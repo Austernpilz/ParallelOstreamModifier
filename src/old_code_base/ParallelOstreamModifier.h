@@ -85,18 +85,18 @@ class ParallelOstreamModifier : public std::ostream
   //   return buffer_.get_buffer_size();
   // }
     
-  ParallelOstreamModifier& operator<<(const std::vector<unsigned char>& data)
-  {
-    write(reinterpret_cast<const char*>(data.data()),
-          static_cast<std::streamsize>(data.size()));
-    return *this;
-  }
+  // ParallelOstreamModifier& operator<<(const std::vector<unsigned char>& data)
+  // {
+  //   write(reinterpret_cast<const char*>(data.data()),
+  //         static_cast<std::streamsize>(data.size()));
+  //   return *this;
+  // }
 
-  ParallelOstreamModifier& operator<<(unsigned char c)
-  {
-    write(&c, 1);
-    return *this;
-  }
+  // ParallelOstreamModifier& operator<<(unsigned char c)
+  // {
+  //   write(&c, 1);
+  //   return *this;
+  // }
 
   private:
     std::ostream& underlying_;
