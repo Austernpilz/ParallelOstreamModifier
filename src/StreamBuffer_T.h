@@ -37,10 +37,10 @@ class ThreadWorkerHive
 {
   using Task_function_ = std::function<size_t(char*, std::size_t, char*& out, std::size_t& out_size)>;
   public:
-    ThreadWorkerHive(StreamBuffer_t* t_cache, std::streambuf* out, size_t threads, Task_function_ fn)
+    ThreadWorkerHive(StreamBuffer_t* t_cache, std::streambuf* out, size_t threads, size_t buf_size, Task_function_ fn)
       : task_manager_(t_cache), writing_sink_(out), func_(std::move(fn))
       {
-        start_workers(threads);
+        start_workers(threads, buf_size);
       }
 
     ~ThreadWorkerHive() { stop(); }
@@ -80,12 +80,12 @@ class ThreadWorkerHive
     bool is_results_empty()
     {
       std::unique_lock<std::mutex> lock(bee_stop_);
-      return results_.empy();
+      return results_.empty();
     }
 
-    void start_workers(size_t threads);
+    void start_workers(size_t threads, size_t buf_size);
 
-    void reset(size_t threads, Task_function_&& fn);
+    void reset(size_t threads, size_t buf_size, Task_function_&& fn);
 
     void stop();
 
@@ -95,9 +95,13 @@ class ThreadWorkerHive
     Task_function_ func_;
 
     std::unordered_map<size_t, std::pair<char*, size_t>> results_;
-    
+    std::deque<char*> empty_result_queue_;
+
     std::condition_variable bee_go_;
     std::mutex bee_stop_;
+
+    std::condition_variable worker_bee_go_;
+    std::mutex worker_bee_stop_;
 
     alignas(64) size_t write_id_;
 
@@ -109,6 +113,11 @@ class ThreadWorkerHive
     void worker_loop();
 
     void writer_loop();
+
+    char* get_result_buffer();
+
+    void give_back_result(char* buf);
+    
 
 }; // end class ThreadHive
 
@@ -146,7 +155,7 @@ class StreamBuffer_t : public std::basic_streambuf<char>
     StreamBuffer_t(std::ostream* os, size_t buffer_size, size_t pool_size, int threads, Task_function_ func)
       : source_os_(os), writing_sink_(os->rdbuf()), 
       buffer_size_(buffer_size), pool_size_(pool_size), next_id_(0), threads_(threads),
-      stopping_(false), HRF_hive_(this, writing_sink_, threads, func)
+      stopping_(false), HRF_hive_(this, writing_sink_, threads, buffer_size, func)
     {
       // for (size_t  i = 0; i < pool_size; ++i)
       // {
@@ -158,10 +167,11 @@ class StreamBuffer_t : public std::basic_streambuf<char>
         empty_buffer_queue_.push_back(buf);
       }
       current_buffer_ = get_empty_buffer();
-      setp(current_buffer_, current_buffer_ + buffer_size);
-      source_os_->rdbuf(this);
-
-      
+      if (current_buffer_)
+      { 
+        setp(current_buffer_, current_buffer_ + buffer_size);
+        source_os_->rdbuf(this);
+      }
     }
 
     // delete copy
@@ -224,10 +234,10 @@ class StreamBuffer_t : public std::basic_streambuf<char>
     bool is_task_queue_empty()
     { 
       std::unique_lock<std::mutex> lock(task_lock_);
-      return task_queue_.empty()
+      return task_queue_.empty();
     }
 
-char* get_empty_buffer();
+  char* get_empty_buffer();
 
   void enqueue_task(const char* s, std::streamsize count);
 

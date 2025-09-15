@@ -2,34 +2,44 @@
 
 // ThreadWorkerHive: 
 // worker_bees_ + queen_bee_writing_(writer)
-void ThreadWorkerHive::start_workers(size_t threads)
+void ThreadWorkerHive::start_workers(size_t threads, size_t buf_size)
 {
   {
     std::unique_lock lock(bee_stop_);
     stopping_ = false;
     bee_go_.notify_all();
   }
-
-  //off_set the size, because one thread is dedicated for writing
-  for (size_t i = 1; i < threads; ++i)
+  
+  std::unique_lock lock(worker_bee_stop_);
   {
-      worker_bees_.emplace_back([this]{ worker_loop(); });
+    for (size_t i = 0; i < threads+2; ++i)
+    {
+      char* buf = new char[buf_size];
+      empty_result_queue_.push_back(buf);
+    }
+    worker_bee_go_.notify_all();
+  }
+  //off_set the size, because one thread is dedicated for writing
+  for (size_t i = 0; i < threads; ++i)
+  {
+    worker_bees_.emplace_back([this]{ worker_loop(); });
   }
   queen_bee_writing_ = std::thread([this]{ writer_loop(); });
 }
 
 
-void ThreadWorkerHive::reset(size_t threads, Task_function_&& fn)
+void ThreadWorkerHive::reset(size_t threads, size_t buf_size, Task_function_&& fn)
 {
   stop();
   results_.clear();
   write_id_ = 0;
   func_ = std::move(fn);
-  start_workers(threads);
+  start_workers(threads, buf_size);
 }
 
 void ThreadWorkerHive::stop() 
 {
+  if (task_manager_->is_task_queue_empty())
   {
     std::unique_lock lock(bee_stop_);
     bee_go_.wait(lock, [this]
@@ -39,10 +49,34 @@ void ThreadWorkerHive::stop()
     stopping_ = true;
     bee_go_.notify_all();
   }
+
+  while(true)
+  {
+    std::unique_lock lock(bee_stop_);
+    if (results_.empty()) break;
+    bee_go_.wait(lock);
+  }
+
   for (auto& t : worker_bees_) { if (t.joinable()) { t.join(); } }
   worker_bees_.clear();
 
   if (queen_bee_writing_.joinable()) { queen_bee_writing_.join(); }
+
+  for (auto* buf : empty_result_queue_) {delete[] buf; }
+}
+
+
+char* ThreadWorkerHive::get_result_buffer()
+{
+  std::unique_lock lock(worker_bee_stop_);
+  worker_bee_go_.wait(lock, [this]
+  {
+    return !empty_result_queue_.empty();
+  });
+  char* buf = empty_result_queue_.front();
+  empty_result_queue_.pop_front();
+
+  return buf;
 }
 
 void ThreadWorkerHive::worker_loop() 
@@ -50,7 +84,7 @@ void ThreadWorkerHive::worker_loop()
   DataChunk task;
   while (task_manager_->get_task(task)) 
   {
-    char* res = task_manager_->get_empty_buffer();
+    char* res = get_result_buffer();
     size_t res_size = task_manager_->get_buffer_size();
     
     res_size = func_(task.data_, task.size_, res, res_size);
@@ -84,12 +118,20 @@ void ThreadWorkerHive::writer_loop()
       results_.erase(it);
       write_id_++;
     }
-
     writing_sink_->sputn(res.first, res.second);
-    task_manager_->give_back_buffer(res.first);
+    give_back_result(res.first);
   }
   writing_sink_->pubsync();
 }
+
+void ThreadWorkerHive::give_back_result(char* buf)
+{
+  std::unique_lock lock(worker_bee_stop_);
+  empty_result_queue_.push_back(buf);
+  worker_bee_go_.notify_all();
+}
+
+
 
 size_t  GzipCompressor::operator()(char* in, size_t  size_in, char* out, size_t  size_out)
 {
@@ -161,7 +203,7 @@ char* StreamBuffer_t::get_empty_buffer()
   {
     return !empty_buffer_queue_.empty() || stopping_; 
   });
-  if (stopping_ && HRF_hive_.is_results_empty()) { return nullptr; }
+  //if (stopping_ && HRF_hive_.is_results_empty()) { return nullptr; }
 
   char* buf = empty_buffer_queue_.front();
   empty_buffer_queue_.pop_front();
@@ -187,6 +229,7 @@ void StreamBuffer_t::finish()
 {
   flush_buffer();  
   stop();
+
   for (auto* buf : empty_buffer_queue_) { delete[] buf; }
   empty_buffer_queue_.clear();
 }
@@ -226,13 +269,17 @@ void StreamBuffer_t::stop()
     task_go_.notify_all();
   }
   HRF_hive_.stop();
+  {
+    std::lock_guard lock(buffer_lock_);
+    buffer_free_.notify_all();
+  }
 }
 
 void StreamBuffer_t::start()
 {
   std::lock_guard lock(buffer_lock_);
   stopping_ = false;
-  HRF_hive_.start_workers(threads_);
+  HRF_hive_.start_workers(threads_, buffer_size_);
   buffer_free_.notify_all();
 }
 
