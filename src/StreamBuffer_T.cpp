@@ -202,7 +202,7 @@ char* StreamBuffer_t::get_empty_buffer()
   
   if (buffer_.empty())
   { 
-    return nullptr; 
+    return std::make_unique<char[]>(buffer_size_); 
   }
 
   char* buf = empty_buffer_queue_.front();
@@ -213,33 +213,37 @@ char* StreamBuffer_t::get_empty_buffer()
 
 void StreamBuffer_t::enqueue_task(const char* s, std::streamsize count)
 {
-  std::unique_lock<std::mutex> lock(task_lock_);
-  task_queue_.push_back(DataChunk{const_cast<char*>(s), static_cast<size_t>(count), next_id_++});
-  task_go_.notify_all();
+  enqueue_task(const_cast<char*>(s), static_cast<size_t>(count));
 }
 
 void StreamBuffer_t::enqueue_task(char* buf, size_t len)
 {
   std::unique_lock lock(task_lock_);
-  task_queue_.push_back(DataChunk{buf, len, next_id_++});
+  size_t chunk_size = len / threads_;
+  size_t index = 0;
+  while (index < len)
+  {
+    task_queue_.push_back(DataChunk{buf + index, index + chunk_size_, next_id_++});
+    index += chunk_size_;
+  }
   task_go_.notify_all();
 }
 
-void StreamBuffer_t::finish()
-{
-  flush_buffer();  
-  stop();
+// void StreamBuffer_t::finish()
+// {
+//   flush_buffer();  
+//   stop();
 
-  for (auto* buf : empty_buffer_queue_) { delete[] buf; }
-  empty_buffer_queue_.clear();
-}
+//   for (auto* buf : empty_buffer_queue_) { delete[] buf; }
+//   empty_buffer_queue_.clear();
+// }
 
-bool StreamBuffer_t::get_task(DataChunk& task)
+char* StreamBuffer_t::get_task(DataChunk& task)
 {
   std::unique_lock lock(task_lock_);
   task_go_.wait(lock, [this]
   { 
-    return stopping_ || !task_queue_.empty(); 
+    return !task_queue_.empty(); 
   });
 
   if (task_queue_.empty()) { return false; }
@@ -252,36 +256,34 @@ bool StreamBuffer_t::get_task(DataChunk& task)
 void StreamBuffer_t::give_back_buffer(char* buf)
 {
   std::unique_lock lock(buffer_lock_);
-  if (empty_buffer_queue_.size() > pool_size_)
+  if (empty_buffer_queue_.size() > threads_)
   {
-    delete[] buf;
     return;
   }
   empty_buffer_queue_.push_back(buf);
-  buffer_free_.notify_all();
 }
 
-void StreamBuffer_t::stop()
-{
-  {
-    std::unique_lock<std::mutex> lock(task_lock_);
-    stopping_ = true;
-    task_go_.notify_all();
-  }
-  HRF_hive_.stop();
-  {
-    std::lock_guard lock(buffer_lock_);
-    buffer_free_.notify_all();
-  }
-}
+// void StreamBuffer_t::stop()
+// {
+//   {
+//     std::unique_lock<std::mutex> lock(task_lock_);
+//     stopping_ = true;
+//     task_go_.notify_all();
+//   }
+//   HRF_hive_.stop();
+//   {
+//     std::lock_guard lock(buffer_lock_);
+//     buffer_free_.notify_all();
+//   }
+// }
 
-void StreamBuffer_t::start()
-{
-  std::lock_guard lock(buffer_lock_);
-  stopping_ = false;
-  HRF_hive_.start_workers(threads_, buffer_size_);
-  buffer_free_.notify_all();
-}
+// void StreamBuffer_t::start()
+// {
+//   std::lock_guard lock(buffer_lock_);
+//   stopping_ = false;
+//   HRF_hive_.start_workers(threads_, buffer_size_);
+//   buffer_free_.notify_all();
+// }
 
 
 

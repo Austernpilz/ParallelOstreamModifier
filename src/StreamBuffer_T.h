@@ -25,13 +25,6 @@
 
 class StreamBuffer_t;  // forward declaration
 
-struct DataChunk
-{
-  char* data_;
-  size_t  size_;
-  size_t  id_;
-};
-
 class ThreadWorkerHive 
 {
   using Task_function_ = std::function<size_t(char*, std::size_t, char*& out, std::size_t& out_size)>;
@@ -89,6 +82,22 @@ class ThreadWorkerHive
     void stop();
 
   private:
+
+    void worker_loop();
+
+    void writer_loop();
+
+    char* get_result_buffer();
+
+    void give_back_result(char* buf);
+
+    struct DataChunk
+    {
+      char* data_;
+      size_t  size_;
+      size_t  id_;
+    };
+
     std::vector<std::thread> worker_bees_;
     std::thread queen_bee_writing_;
     std::thread queen_bee_organizing;
@@ -105,15 +114,9 @@ class ThreadWorkerHive
     StreamBuffer_t* task_manager_;
     std::streambuf* writing_sink_;
     
+
     bool stopping_{true};
 
-    void worker_loop();
-
-    void writer_loop();
-
-    char* get_result_buffer();
-
-    void give_back_result(char* buf);
     
 
 }; // end class ThreadHive
@@ -150,19 +153,21 @@ class StreamBuffer_t : public std::basic_streambuf<char>
   public:
     // Constructor
     StreamBuffer_t(std::ostream* os, size_t buffer_size, size_t pool_size, int threads, Task_function_ func)
-      : source_os_(os), writing_sink_(os->rdbuf()), 
-      buffer_size_(buffer_size), pool_size_(pool_size), next_id_(0), threads_(threads),
-      stopping_(false), HRF_hive_(this, writing_sink_, threads, buffer_size, func)
+      : HRF_hive_(std::make_unique<ThreadWorkerHive>()), 
+      source_os_(os), writing_sink_(os->rdbuf()), 
+      buffer_size_(buffer_size), next_id_(0), threads_(threads),
     {
       // for (size_t  i = 0; i < pool_size; ++i)
       // {
       //   empty_buffer_queue_.push_back(std::make_unique<char[]>(buffer_size));
       // }
-      for (size_t i = 0; i < pool_size; ++i) 
-      {
-        char* buf = std::unique_ptr<char[buffer_size]>;
-        empty_buffer_queue_.push_back(buf);
-      }
+      // HRF_hive_(this, writing_sink_, threads, buffer_size, func)
+      // for (size_t i = 0; i < pool_size; ++i) 
+      // {
+      //   char* buf = std::unique_ptr<char[buffer_size]>;
+      //   empty_buffer_queue_.push_back(buf);
+      // }
+      HRF_hive_.init(this, writing_sink_, threads, buffer_size_, func)
       current_buffer_ = get_empty_buffer();
       if (current_buffer_)
       {
@@ -264,7 +269,7 @@ class StreamBuffer_t : public std::basic_streambuf<char>
         *pptr() = static_cast<char>(ch);
         pbump(1);
       } 
-      else { flush_buffer(); }
+      // else { flush_buffer(); }
       return ch;
     }
 
@@ -309,16 +314,13 @@ private:
   std::condition_variable buffer_free_;
 
   //Honey Result Factory :D
-  ThreadWorkerHive HRF_hive_;
+  std::unique_ptr<ThreadWorkerHive> HRF_hive_;
 
-  size_t  buffer_size_;
-  size_t  pool_size_;
-  size_t  next_id_;
+  size_t buffer_size_;
+  size_t next_id_;
   int threads_;
 
   char* current_buffer_;
-  std::atomic<bool> stopping_{true};
-
 }; // end class streambuffer_t
 
 
