@@ -19,7 +19,6 @@
 #include <zlib.h>
 #include <unordered_map>
 
-
 #ifdef _OPENMP
   #include <omp.h>
 #endif
@@ -92,6 +91,7 @@ class ThreadWorkerHive
   private:
     std::vector<std::thread> worker_bees_;
     std::thread queen_bee_writing_;
+    std::thread queen_bee_organizing;
     Task_function_ func_;
 
     std::unordered_map<size_t, std::pair<char*, size_t>> results_;
@@ -99,9 +99,6 @@ class ThreadWorkerHive
 
     std::condition_variable bee_go_;
     std::mutex bee_stop_;
-
-    std::condition_variable worker_bee_go_;
-    std::mutex worker_bee_stop_;
 
     alignas(64) size_t write_id_;
 
@@ -163,12 +160,12 @@ class StreamBuffer_t : public std::basic_streambuf<char>
       // }
       for (size_t i = 0; i < pool_size; ++i) 
       {
-        char* buf = new char[buffer_size];
+        char* buf = std::unique_ptr<char[buffer_size]>;
         empty_buffer_queue_.push_back(buf);
       }
       current_buffer_ = get_empty_buffer();
       if (current_buffer_)
-      { 
+      {
         setp(current_buffer_, current_buffer_ + buffer_size);
         source_os_->rdbuf(this);
       }
@@ -221,7 +218,6 @@ class StreamBuffer_t : public std::basic_streambuf<char>
     {
       sync();
       stop();
-      for (auto* buf : empty_buffer_queue_) {delete[] buf; }
       source_os_->rdbuf(writing_sink_);
     }
 
@@ -237,22 +233,26 @@ class StreamBuffer_t : public std::basic_streambuf<char>
       return task_queue_.empty();
     }
 
-  char* get_empty_buffer();
+    char* get_empty_buffer();
 
-  void enqueue_task(const char* s, std::streamsize count);
+    void enqueue_task(const char* s, std::streamsize count);
 
-  void enqueue_task(char* buf, size_t len);
+    void enqueue_task(char* buf, size_t len);
 
-  bool get_task(DataChunk& task);
+    bool get_task(DataChunk& task);
 
-  void give_back_buffer(char* buf);
-  void finish();
+    void give_back_buffer(char* buf);
+    void finish();
 
   protected:
         
     int sync() override 
     {
-      if (flush_buffer()) { return 0;}
+      if (flush_buffer())
+      {
+        HRF_hive_.finish();
+        return 0;
+      }
       return -1;
     }
 
@@ -270,37 +270,24 @@ class StreamBuffer_t : public std::basic_streambuf<char>
 
     std::streamsize xsputn(const char* s, std::streamsize count) override 
     {
-      std::streamsize written = 0;
-      std::streamsize available_space = get_available_space();
+      std::streamsize written = std::min(count, get_available_space(););
+      std::memcpy(pptr(), s, written);
+      pbump(static_cast<int>(written));
 
-      if (count <= available_space)
+      if (count > written) { flush_buffer(); } else { return written; }
+
+      count -= written;
+      s += written;
+
+      if (count >= buffer_size_) { enqueue_task(s, count); } 
+      else 
       {
         std::memcpy(pptr(), s, count);
         pbump(static_cast<int>(count));
-        if (get_available_space() == 0) { flush_buffer(); }
-        return count;
       }
-      else
-      {
-        flush_buffer();
-        while (count >= buffer_size_)
-        {
-          enqueue_task(s, buffer_size_);
-          s += buffer_size_;
-          count -= buffer_size_;
-          written += buffer_size_;
-        }
-        if (count > 0)
-        {
-          std::memcpy(pptr(), s, count);
-          pbump(static_cast<int>(count));
-          written += count;
-        }
-        return written;
-      }
-    }
 
-  
+      return count + written;
+    }
 
 private:
 

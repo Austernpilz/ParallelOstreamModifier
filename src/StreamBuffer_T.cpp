@@ -199,11 +199,11 @@ bool StreamBuffer_t::flush_buffer()
 char* StreamBuffer_t::get_empty_buffer()
 {
   std::unique_lock lock(buffer_lock_);
-  buffer_free_.wait(lock, [this]
-  {
-    return !empty_buffer_queue_.empty() || stopping_; 
-  });
-  //if (stopping_ && HRF_hive_.is_results_empty()) { return nullptr; }
+  
+  if (buffer_.empty())
+  { 
+    return nullptr; 
+  }
 
   char* buf = empty_buffer_queue_.front();
   empty_buffer_queue_.pop_front();
