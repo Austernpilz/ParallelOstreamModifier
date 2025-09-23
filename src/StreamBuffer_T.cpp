@@ -218,15 +218,19 @@ void StreamBuffer_t::enqueue_task(const char* s, std::streamsize count)
 
 void StreamBuffer_t::enqueue_task(char* buf, size_t len)
 {
-  std::unique_lock lock(task_lock_);
-  size_t chunk_size = len / threads_;
-  size_t index = 0;
-  while (index < len)
   {
-    task_queue_.push_back(DataChunk{buf + index, index + chunk_size_, next_id_++});
-    index += chunk_size_;
+    std::unique_lock lock(task_lock_);
+    size_t chunk_size = len / threads_;
+    size_t index = 0; 
+    while (index < len - chunk_size)
+    {
+      task_queue_.push_back(DataChunk{buf + index, chunk_size, next_id_++});
+      index += chunk_size;
+    }
+    task_queue_.push_back(DataChunk{buf + index, len - index, next_id_++});
+    task_go_.notify_all();
   }
-  task_go_.notify_all();
+  
 }
 
 // void StreamBuffer_t::finish()
@@ -238,7 +242,7 @@ void StreamBuffer_t::enqueue_task(char* buf, size_t len)
 //   empty_buffer_queue_.clear();
 // }
 
-char* StreamBuffer_t::get_task(DataChunk& task)
+bool StreamBuffer_t::get_task(DataChunk& task)
 {
   std::unique_lock lock(task_lock_);
   task_go_.wait(lock, [this]

@@ -23,7 +23,38 @@
   #include <omp.h>
 #endif
 
+//some forward declaration
 class StreamBuffer_t;  // forward declaration
+
+
+
+
+// some utilitie structs
+
+// ------ DataChunk ------
+// is Task and Result Chunk
+// used by the worker to process the input towards a result for the writer
+struct DataChunk
+{
+  std::unique_ptr<std::vector<char>> m_buffer;
+  size_t m_id = 0;
+
+  DataChunk() = default;
+  DataChunk(std::unique_ptr<std::vector<char>> buffer, size_t id)
+    : m_buffer(std::move(buffer)), m_id(size) {}
+
+  // yes to move
+  DataChunk(CompressTask&&) noexcept = default;
+  DataChunk& operator=(CompressTask&&) noexcept = default;
+
+  // no to copy
+  DataChunk(const CompressTask&) = delete;
+  DataChunk& operator=(const CompressTask&) = delete;
+};
+
+// ------ BufferPool ------
+// to reuse the 
+
 
 class ThreadWorkerHive 
 {
