@@ -1,5 +1,44 @@
 #include "StreamBuffer_t.h"
 
+std::unique_ptr<std::vector<char>> BufferCache::getBuffer()
+{
+  BufferVec& local_cache = getLocal();
+
+  if (!local_cache.empty()) // get buffer from local pool
+  {
+    std::unique_ptr<std::vector<char>> buffer = std::move(local_cache.back());
+    local_cache.pop_back();
+    return buffer;
+  }
+  else // get buffer from global pool
+  {
+    std::lock_guard<std::mutex> lock(global_buffer_mutex_);
+    if (!global_buffer_cache_.empty())
+    {
+      std::unique_ptr<std::vector<char>> buffer = std::move(global_buffer_cache_.back());
+      global_buffer_cache_.pop_back();
+      return buffer;
+    }
+  }
+  // "3. else" make new buffer
+  return std::make_unique<std::vector<char>>(buffer_size_); 
+}
+
+void BufferCache::giveBackBuffer(std::unique_ptr<std::vector<char>> buffer)
+{
+  BufferVec& local_cache = getLocal();
+
+  if (local_cache.size() < max_local_buffer_)
+  {
+    local_cache.emplace_back(std::move(buffer));
+  }
+  else
+  {
+    std::lock_guard<std::mutex> lock(global_buffer_mutex_);
+    global_buffer_cache_.emplace_back(std::move(buffer));
+  }
+}
+
 // ThreadWorkerHive: 
 // worker_bees_ + queen_bee_writing_(writer)
 void ThreadWorkerHive::start_workers(size_t threads, size_t buf_size)

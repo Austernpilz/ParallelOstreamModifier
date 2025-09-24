@@ -1,17 +1,15 @@
+#include <vector>
+#include <memory>
+#include <mutex>
+#include <thread>
+
 #include <streambuf>
 #include <ostream>
 #include <cstdint>
 #include <cstdlib>
 #include <string>
-#include <memory>
 #include <limits>
 #include <iostream>
-#include <fstream>
-#include <vector>
-#include <deque>
-#include <map>
-#include <thread>
-#include <mutex>
 #include <condition_variable>
 #include <functional>
 #include <atomic>
@@ -23,13 +21,11 @@
   #include <omp.h>
 #endif
 
-//some forward declaration
-class StreamBuffer_t;  // forward declaration
+//some forward declarations
+class StreamBuffer_t;
 
 
-
-
-// some utilitie structs
+// some utility objects
 
 // ------ DataChunk ------
 // is Task and Result Chunk
@@ -50,10 +46,67 @@ struct DataChunk
   // no to copy
   DataChunk(const CompressTask&) = delete;
   DataChunk& operator=(const CompressTask&) = delete;
+
+  ~DataChunk() = default;
 };
 
-// ------ BufferPool ------
-// to reuse the 
+
+// ------ BufferCache ------
+// to reuse the buffers, and also keep a buffer in the local thread storage
+class BufferCache
+{
+  public:
+    BufferCache(int threads, size_t buffer_size, uint8_t max_local_buffer)
+      : buffer_size_(buffer_size),
+        threads_(threads),
+        max_local_buffer_(max_local_buffer)
+    {
+      for (int i = 0; i < 2 * threads; ++i)
+      {
+        global_pool_.emplace_back(std::make_unique<std::vector<char>>(buffer_size_));
+      }
+    }
+
+    // yes to move
+    BufferCache(BufferCache&&) noexcept = default;
+    BufferCache& operator=(BufferCache&&) noexcept = default;
+
+    // no to copy
+    BufferCache(const BufferCache&) = delete;
+    BufferCache& operator=(const BufferCache&) = delete;
+
+    ~BufferCache() = default;
+
+    std::unique_ptr<std::vector<char>> getBuffer();
+    void giveBackBuffer(std::unique_ptr<std::vector<char>> buffer);
+
+    size_t getLocalCacheSize() const 
+    {
+      return getLocal().size(); 
+    }
+
+    size_t getGlobalCacheSize() const
+    {
+      std::lock_guard<std::mutex> lock(global_buffer_mutex_);
+      return global_buffers_.size();
+    }
+
+  private:
+    using BufferVec = std::vector<std::unique_ptr<std::vector<char>>>;
+
+    BufferVec& getLocal()
+    {
+      thread_local BufferVec local_buffer_cache_t_;
+      return local_buffer_cache_t_;
+    }
+
+    BufferVec global_buffer_cache_;
+    std::mutex global_buffer_mutex_;
+
+    size_t buffer_size_;
+    int threads_;
+    uint8_t max_local_buffer_;
+};
 
 
 class ThreadWorkerHive 
